@@ -1,0 +1,45 @@
+@import url("effects.css");
+
+/* Video */
+
+.mejs-logo-button, .mejs-logo-button span {
+	color: white;
+}
+
+/* Logo */
+.mejs-container .mejs-layers .mejs-logo-button {
+    /*text-indent: 100%;*/
+    white-space: nowrap;
+    overflow: hidden;
+    /*cursor: pointer;*/
+    position: absolute;
+/*    top: 5px;
+    right: 5px;*/
+}
+.mejs-container.nologo .mejs-layers .mejs-logo-button {
+    display: none;
+}
+
+.mejs-container {
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.2);
+}
+
+.mejs-wpbeautify embed, .mejs-wpbeautify video  {
+	max-width: none !important;
+}
+/*
+.mejs-container {
+  width: 100% !important;
+  height: auto !important;
+  padding-top: 57%;
+}
+.mejs-overlay, .mejs-poster {
+  width: 100% !important;
+  height: 100% !important;
+}
+.mejs-mediaelement video {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+}*/

@@ -1,0 +1,253 @@
+/* Fonts */
+
+/* Mine */
+	.font-effect-inset {
+text-shadow: 0px -2px 0px #333,
+                  0px 2px 3px #666;          
+    }
+.font-effect-neon-lights {
+      text-shadow: 0 0 10px #fff,
+                   0 0 20px #fff,
+                   0 0 30px #fff,
+                   0 0 40px #ff00de,
+                   0 0 70px #ff00de,
+                   0 0 80px #ff00de,
+                   0 0 100px #ff00de,
+                   0 0 150px #ff00de;    
+                   }
+
+     	.font-effect-letterpress {
+color: #222;
+text-shadow: 0px 2px 3px #555;        
+    }              
+
+     	.font-effect-shadow-hover {
+         color: white; 
+   font: bold 52px Helvetica, Arial, Sans-Serif;
+   text-shadow: 1px 1px #fe4902, 
+                2px 2px #fe4902, 
+                3px 3px #fe4902;
+   -webkit-transition: all 0.12s ease-out;
+   -moz-transition:    all 0.12s ease-out;
+   -ms-transition:     all 0.12s ease-out;
+   -o-transition:      all 0.12s ease-out;
+    } 
+
+     	.font-effect-shadow-hover:hover {
+   position: relative; 
+   top: -3px; 
+   left: -3px; 
+   text-shadow: 1px 1px #fe4902, 
+                2px 2px #fe4902, 
+                3px 3px #fe4902, 
+                4px 4px #fe4902, 
+                5px 5px #fe4902, 
+                6px 6px #fe4902;
+    } 
+
+     	.font-effect-scaling-hover {
+	       -webkit-transition: all 0.12s ease-out;
+           -moz-transition: all 0.12s ease-out;
+           -o-transition: all 0.12s ease-out;
+    } 
+
+     	.font-effect-scaling-hover:hover {
+	display:block;     	
+-webkit-transform: scale(1.1); 
+-moz-transform: scale(1.1); 
+-o-transform: scale(1.1); 
+transform: scale(1.1); 
+text-shadow: 3px 3px 3px #333;
+    } 
+
+.font-effect-single-stroke {
+  /* WebKit (Safari/Chrome) Only */
+  -webkit-text-stroke: 1px black;
+  
+  /* If we weren't using text-shadow, we'd set a fallback color
+     and use this to set color instead
+    -webkit-text-fill-color: white; */
+  
+  color: white;
+  
+  text-shadow:
+    3px 3px 0 #000,
+    /* Simulated effect for Firefox and Opera
+       and nice enhancement for WebKit */
+   -1px -1px 0 #000,  
+    1px -1px 0 #000,
+   -1px  1px 0 #000,
+    1px  1px 0 #000;	
+}
+
+
+.font-effect-cloudy {
+text-shadow: 0px 0px 10px rgba(255,255,255,0.6), 0px 0px 30px rgba(255,255,255,0.4), 0px 0px 50px rgba(255,255,255,0.3), 0px 0px 180px rgba(255,255,255,0.3);
+        color: rgba(255,255,255,0);
+        color: #ccc;
+        }
+
+.font-effect-vintage-retro {
+text-transform: uppercase;
+color: #707070;
+text-shadow: 5px 5px 0px #eee, 7px 7px 0px #707070;	
+}
+
+
+/* Gabriel */
+
+.font-effect-stereoscopic-3d {
+text-shadow: -0.06em 0 red, 0.06em 0 cyan;
+}
+.font-effect-text-highlighter-green {
+background-color: #ccff00;
+padding: 1px;
+}
+
+.font-effect-text-highlighter-yellow {
+background-color: #FFFF35;
+padding: 1px;
+}
+
+.font-effect-text-highlighter-red {
+background-color: #ff0000;
+padding: 1px;
+}
+
+
+
+.font-effect-strikethrough-text-color {
+text-decoration:line-through;
+color: red;
+}
+
+.font-effect-grow:hover {
+-webkit-transform: scale(1.1);
+-ms-transform: scale(1.1);
+transform: scale(1.1);
+}
+.font-effect-shrink:hover {
+-webkit-transform: scale(0.9);
+-ms-transform: scale(0.9);
+transform: scale(0.9);
+}
+.font-effect-pop:hover {
+-webkit-animation-name: pop;
+animation-name: pop;
+-webkit-animation-duration: 0.3s;
+animation-duration: 0.3s;
+-webkit-animation-timing-function: linear;
+animation-timing-function: linear;
+-webkit-animation-iteration-count: 1;
+animation-iteration-count: 1;
+}
+.font-effect-float:hover {
+-webkit-transform: translateY(-5px);
+-ms-transform: translateY(-5px);
+transform: translateY(-5px);
+}
+.font-effect-sink:hover {
+-webkit-transform: translateY(5px);
+-ms-transform: translateY(5px);
+transform: translateY(5px);
+}
+.font-effect-skew:hover {
+-webkit-transform: skew(-10deg);
+-ms-transform: skew(-10deg);
+transform: skew(-10deg);
+}
+.font-effect-border-fade:hover {
+box-shadow: inset 0 0 0 4px #666666, 0 0 1px rgba(0, 0, 0, 0);
+}
+.font-effect-glow-hover:hover {
+box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+
+
+.font-effect-text-outline {
+text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+}
+.font-effect-3d-text {
+text-shadow: 0px 0px 0 rgb(198,198,198),1px 1px 0 rgb(163,163,163),2px 2px 0 rgb(127,127,127),3px 3px 0 rgb(91,91,91), 4px 4px 0 rgb(55,55,55),5px 5px 4px rgba(0,0,0,0.35),5px 5px 1px rgba(0,0,0,0.5),0px 0px 4px rgba(0,0,0,.2);
+}
+.font-effect-text-shadow {
+text-shadow: 2px 2px 2px #000;
+}
+.font-effect-blurry-text {
+color: transparent;
+text-shadow: 0 0 5px rgba(0,0,0,0.8);
+}
+.font-effect-milky-text {
+color: #fff;
+background: #fff;
+text-shadow: 1px 1px 4px #000;
+}
+.font-effect-mystery-text {
+color: #000;
+background: #000;
+text-shadow: 1px 1px 4px #fff;
+}
+.font-effect-engrave-text {
+text-shadow: 1px 1px white, -1px -1px #444;
+color: #fff;
+}
+.font-effect-small-caps {
+font-variant: small-caps;
+}
+.font-effect-text-glow {
+text-shadow: 0 0 0.2em #B8F9BB, 0 0 0.2em #B8F9BB, 0 0 0.2em #B8F9BB;
+}
+.font-effect-text-highlight-border {
+background-color: #FFFF35;
+border: 1px solid #E5D02D;
+padding: 2px 5px 2px 5px;
+border-radius: 3px;
+}
+.font-effect-box-shadow {
+background-color: #FFFF35;
+border: 1px solid #E5D02D;
+padding: 2px 5px 2px 5px;
+border-radius: 3px;
+box-shadow: 5px 5px 2px #888888;
+}
+.font-effect-hover-box {
+background-color: #B8F9BB;
+border: 1px solid #419B44;
+padding: 2px 5px 2px 5px;
+border-radius: 3px;
+box-shadow: 10px 10px 5px #888888;
+}
+.font-effect-3d-buttons {
+border: 1px solid #006400;
+background-color: #008000;
+border-radius: 4px;
+box-shadow: inset 1px 6px 12px #7CFC00, inset -1px -10px 5px #006400, 1px 2px 1px black;
+-o-box-shadow: inset 1px 6px 12px #7CFC00, inset -1px -10px 5px #006400, 1px 2px 1px black;
+-webkit-box-shadow: inset 1px 6px 12px #7CFC00, inset -1px -10px 5px #006400, 1px 2px 1px black;
+-moz-box-shadow: inset 1px 6px 12px #7CFC00, inset -1px -10px 5px #006400, 1px 2px 1px black;
+color: white;
+text-shadow: 1px 1px 1px black;
+padding: 5px 30px;
+}
+.font-effect-callout-box {
+background-color: #FDBF5D;
+border: 1px solid #FDAB2A;
+border-radius: 10px;
+padding: 10px;
+width: auto;
+}
+.font-effect-single-border {
+border: 1px solid #000;
+padding: 2px 10px 2px 10px;
+border-radius: 2px;
+}
+.font-effect-75-opacity {
+opacity: 0.75;
+}
+.font-effect-50-opacity {
+opacity: 0.50;
+}
+.font-effect-25-opacity {
+opacity: 0.25;
+}
