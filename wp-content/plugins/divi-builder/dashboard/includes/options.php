@@ -187,6 +187,17 @@ $dashboard_options_all = array(
 			'hint_text'            => et_get_safe_localization( sprintf( __( 'The Maps module uses the Google Maps API and requires a valid Google API Key to function. Before using the map module, please make sure you have added your API key here. Learn more about how to create your Google API Key <a target="_blank" href="%1$s">here</a>.', 'et_builder_plugin' ), 'http://www.elegantthemes.com/gallery/divi/documentation/map/#gmaps-api-key' ) ),
 		),
 
+		'option_maps_script_enqueue' => array(
+			'type'                 => 'checkbox',
+			'default'              => 'on',
+			'value'                => 'on',
+			'title'                => esc_html__( 'Enqueue Google Maps Script', 'et_builder_plugin' ),
+			'name'                 => 'enqueue_google_maps_script',
+			'class'                => 'enqueue_google_maps_script',
+			'validation_type'      => 'simple_text',
+			'hint_text'            => et_get_safe_localization( sprintf( __( 'Disable this option to remove the Google Maps API script from your Divi Builder Pages. This may improve compatibility with third party plugins that also enqueue this script. Please Note: Modules that rely on the Google Maps API in order to function properly, such as the Maps and Fullwidth Maps Modules, will still be available but will not function while this option is disabled (unless you manually add Google Maps API script).', 'et_builder_plugin' ), 'http://www.elegantthemes.com/gallery/divi/documentation/map/#gmaps-api-key' ) ),
+		),
+
 		'update_button' => array(
 			'type'            => 'button',
 			'title'           => esc_html__( 'Save', 'et_builder_plugin' ),
@@ -255,6 +266,7 @@ $assigned_options = array(
 		$dashboard_options_all[ 'api_title' ],
 		$dashboard_options_all[ 'google_api' ][ 'section_start' ],
 			$dashboard_options_all[ 'google_api' ][ 'option' ],
+			$dashboard_options_all[ 'google_api' ][ 'option_maps_script_enqueue' ],
 			$dashboard_options_all[ 'google_api' ][ 'update_button' ],
 			$dashboard_options_all[ 'end_of_section' ],
 	),

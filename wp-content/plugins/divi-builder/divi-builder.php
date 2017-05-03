@@ -3,7 +3,7 @@
  * Plugin Name: Divi Builder
  * Plugin URI: http://elegantthemes.com
  * Description: A drag and drop page builder for any WordPress theme.
- * Version: 1.3.10
+ * Version: 2.0.3
  * Author: Elegant Themes
  * Author URI: http://elegantthemes.com
  * License: GPLv2 or later
@@ -70,6 +70,13 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 		add_filter( 'et_builder_inner_content_class', array( $this, 'add_builder_inner_content_class' ) );
 
 		add_filter( 'et_pb_builder_options_array', array( $this, 'get_builder_options' ) );
+
+		$theme_file_path_length = strlen( get_theme_file_path() );
+
+		if ( class_exists( 'WooCommerce' ) && function_exists( 'wc_locate_template' ) && substr( wc_locate_template( 'archive-product.php' ), 0, $theme_file_path_length ) === get_theme_file_path() ) {
+			add_action( 'et_pb_shop_before_print_shop', array( $this, 'force_woocommerce_default_templates' ) );
+			add_action( 'et_pb_shop_after_print_shop', array( $this, 'return_woocommerce_default_templates' ) );
+		}
 	}
 
 	static function add_updates() {
@@ -85,24 +92,7 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 
 		// Divi builder layout should only be used in singular template
 		if ( ! is_singular() ) {
-			// get_the_excerpt() for excerpt retrieval causes infinite loop; thus we're using excerpt from global $post variable
-			global $post;
-
-			$read_more = sprintf(
-				' <a href="%1$s" title="%2$s" class="more-link">%3$s</a>',
-				esc_url( get_permalink() ),
-				sprintf( esc_attr__( 'Read more on %1%s', 'et_builder' ), esc_html( get_the_title() ) ),
-				esc_html__( 'read more', 'et_builder' )
-			);
-
-			// Use post excerpt if there's any. If there is no excerpt defined,
-			// Generate from post content by stripping all shortcode first
-			if ( ! empty( $post->post_excerpt ) ) {
-				return wpautop( $post->post_excerpt . $read_more );
-			} else {
-				$shortcodeless_content = preg_replace( '/\[[^\]]+\]/', '', $content );
-				return wpautop( et_wp_trim_words( $shortcodeless_content, 270, $read_more ) );
-			}
+			return $content;
 		}
 
 		$outer_class   = apply_filters( 'et_builder_outer_content_class', array( 'et_builder_outer_content' ) );
@@ -135,7 +125,10 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 	}
 
 	function add_builder_inner_content_class( $classes ) {
-		$classes[] = 'et_pb_gutters3';
+		$page_custom_gutter = get_post_meta( get_the_ID(), '_et_pb_gutter_width', true );
+		$valid_gutter_width = array( '1', '2', '3', '4' );
+		$gutter_width       = in_array( $page_custom_gutter, $valid_gutter_width ) ? $page_custom_gutter : '3';
+		$classes[]          = "et_pb_gutters{$gutter_width}";
 
 		return $classes;
 	}
@@ -174,6 +167,7 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 
 		// prepare array of Google API settings
 		$processed_updates_settings['api_main_google_api_key'] = isset( $google_api_settings['api_key'] ) ? $google_api_settings['api_key'] : '';
+		$processed_updates_settings['api_main_enqueue_google_maps_script'] = isset( $google_api_settings['enqueue_google_maps_script'] ) ? $google_api_settings['enqueue_google_maps_script'] : false;
 
 		$complete_options_set = array_merge( $builder_options, $processed_updates_settings );
 		return $complete_options_set;
@@ -413,12 +407,30 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 		}
 
 		$api_key = ! empty( $_POST['et_builder_google_api_key'] ) ? sanitize_text_field( $_POST['et_builder_google_api_key'] ) : '';
+		$enqueue_google_maps_script = ( isset( $_POST['et_builder_enqueue_google_maps_script'] ) && 'on' === $_POST['et_builder_enqueue_google_maps_script'] ) ? 'on' : 'off';
 
 		update_option( 'et_google_api_settings', array(
-			'api_key' => $api_key,
-		) );
+			'api_key'                    => $api_key,
+			'enqueue_google_maps_script' => $enqueue_google_maps_script,
+		));
 
 		die();
+	}
+
+	/**
+	 * Force WooCommerce to use its default templates (ignoring themes' custom templates) on shop module
+	 * @return void
+	 */
+	function force_woocommerce_default_templates() {
+		add_filter( 'woocommerce_template_path', '__return_false' );
+	}
+
+	/**
+	 * Cleanup force_woocommerce_default_templates(), allowing non shop module WooCommerce shortcode to use theme's WooCommerce template
+	 * @return void
+	 */
+	function return_woocommerce_default_templates() {
+		remove_filter( 'woocommerce_template_path', '__return_false' );
 	}
 }
 
@@ -432,3 +444,116 @@ function et_divi_builder_add_updates() {
 	ET_Builder_Plugin::add_updates();
 }
 add_action( 'plugins_loaded', 'et_divi_builder_add_updates' );
+
+if ( ! function_exists( 'et_divi_builder_setup_thumbnails' ) ) :
+function et_divi_builder_setup_thumbnails() {
+	add_theme_support( 'post-thumbnails' );
+
+	global $et_theme_image_sizes;
+
+	$et_theme_image_sizes = array(
+		'400x250'   => 'et-pb-post-main-image',
+		'1080x675'  => 'et-pb-post-main-image-fullwidth',
+		'400x284'   => 'et-pb-portfolio-image',
+		'510x382'   => 'et-pb-portfolio-module-image',
+		'1080x9999' => 'et-pb-portfolio-image-single',
+		'400x516'   => 'et-pb-gallery-module-image-portrait',
+	);
+
+	$et_theme_image_sizes = apply_filters( 'et_theme_image_sizes', $et_theme_image_sizes );
+	$crop = apply_filters( 'et_post_thumbnails_crop', true );
+
+	if ( is_array( $et_theme_image_sizes ) ){
+		foreach ( $et_theme_image_sizes as $image_size_dimensions => $image_size_name ){
+			$dimensions = explode( 'x', $image_size_dimensions );
+
+			if ( in_array( $image_size_name, array( 'et-pb-portfolio-image-single' ) ) ){
+				$crop = false;
+			}
+
+			add_image_size( $image_size_name, $dimensions[0], $dimensions[1], $crop );
+
+			$crop = apply_filters( 'et_post_thumbnails_crop', true );
+		}
+	}
+}
+endif;
+add_action( 'after_setup_theme', 'et_divi_builder_setup_thumbnails' );
+
+/**
+ * Switch the translation of Visual Builder interface to current user's language
+ * @return void
+ */
+if ( ! function_exists( 'et_fb_set_builder_locale' ) ) :
+function et_fb_set_builder_locale() {
+	// apply translations inside VB only
+	if ( empty( $_GET['et_fb'] ) ) {
+		return;
+	}
+
+	// make sure switch_to_locale() funciton exists. It was introduced in WP 4.7
+	if ( ! function_exists( 'switch_to_locale' ) ) {
+		return;
+	}
+
+	// do not proceed if user language == website language
+	if ( get_user_locale() === get_locale() ) {
+		return;
+	}
+
+	// switch the translation to user language
+	switch_to_locale( get_user_locale() );
+
+	// manually restore the translation for all domains except for the 'et_builder' domain
+	// otherwise entire page will be translated to user language, but we need to apply it to VB interface only.
+
+	/* The below code adapted from WordPress
+
+	  wp-includes/class-wp-locale-switcher.php:
+	    * load_translations()
+
+	  @copyright 2015 by the WordPress contributors.
+	  This program is free software; you can redistribute it and/or modify
+	  it under the terms of the GNU General Public License as published by
+	  the Free Software Foundation; either version 2 of the License, or
+	  (at your option) any later version.
+
+	  This program is distributed in the hope that it will be useful,
+	  but WITHOUT ANY WARRANTY; without even the implied warranty of
+	  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	  GNU General Public License for more details.
+
+	  You should have received a copy of the GNU General Public License
+	  along with this program; if not, write to the Free Software
+	  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+	  This program incorporates work covered by the following copyright and
+	  permission notices:
+
+	  b2 is (c) 2001, 2002 Michel Valdrighi - m@tidakada.com - http://tidakada.com
+
+	  b2 is released under the GPL
+
+	  WordPress - Web publishing software
+
+	  Copyright 2003-2010 by the contributors
+
+	  WordPress is released under the GPL */
+
+	global $l10n;
+
+	$domains = $l10n ? array_keys( $l10n ) : array();
+
+	load_default_textdomain( get_locale() );
+
+	foreach ( $domains as $domain ) {
+		if ( 'et_builder' === $domain ) {
+			continue;
+		}
+
+		unload_textdomain( $domain );
+		get_translations_for_domain( $domain );
+	}
+}
+endif;
+add_action( 'after_setup_theme', 'et_fb_set_builder_locale' );

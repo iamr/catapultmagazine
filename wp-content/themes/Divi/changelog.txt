@@ -1,3 +1,100 @@
+version 3.0.40 ( updated 4-4-17 )
+- Added support for new WooCommerce 3.0 galleries and zoom effects on product pages. 
+- Fixed a bug that caused unwanted spacing to remain on the page after closing a settings modal using the ESC hotkey in the Visual Builder when the modal was snapped to the side of the page. 
+- Fixed typo in the shop module settings modal.
+- Fixed a typo in the testimonial module settings that caused an unwanted comma to appear in the Visual Builder.
+- Fixed a bug that caused design setting changes to shop modules made in the Visual Builder to apply to all shop modules on the page.
+- Fixed a bug that caused an unwanted save warning to appear after having saved the page while the Inline Editor was currently editing a piece of text that contained a third party shortcode.
+- Fixed a bug that caused quotes within module content to be replaced with HTML entities on the front end when used within global modules.
+- Fixed a bug that caused an unwanted save warning to appear after leaving a page that contained certain types of global rows and sections.
+	* style.css
+	* functions.php
+	* includes/builder/scripts/builder.js
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+	* includes/builder/class-et-builder-element.php
+
+version 3.0.39 ( updated 3-23-17 )
+- Fixed unwanted "Your Save Has Failed" warning that appeared even when the save was performed successfully when the Visual Builder was used with certain third party plugins.
+- Fixed "Call to undefined function et_fb_enabled()" error that occurred when using some third party plugins that modify the WordPress loading flow.
+- Fixed a bug that made it impossible to disable the Divi Builder if the original version of the page being restored contained no data. 
+- Fixed compatibility issue with BackupGuard and other plugins that caused the Divi Builder to fail when attempting to edit modules due to the de-registering of the WordPress heartbeat.
+- Added graceful failures for situations where the WordPress heartbeat fails to load or is turned off. The Divi Builder will no longer fail to load in these situations, but instead will load without the features that rely on the heartbeat.
+- Fixed a bug that caused extra padding calculations for transparent headers to fail when the first section on the page was hidden.
+- Fixed a bug that caused multiple rows of tab buttons to flow into tab content.
+- Added missing localization for the contact module submit button.
+- Removed empty paragraph tag that was added to CTA modules in the Visual Builder even when the content field was empty.
+	* includes/builder/ab-testing.php
+	* includes/builder/framework.php
+	* includes/builder/main-modules.php
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+	* includes/builder/frontend-builder/init.php
+	* includes/builder/frontend-builder/app/lib/autosave.js
+	* includes/builder/frontend-builder/app/lib/heartbeat.js
+	* includes/builder/scripts/builder.js
+	* includes/builder/functions.php
+	* js/custom.js
+
+version 3.0.38 ( updated 3-20-17 )
+- Fixed a bug that caused an unwanted save warning message to appear when leaving a recently-saved page that contained certain combinations of global rows and sections. 
+- Fixed a bug in IE11 and below that made it impossible to open module settings in the Divi Builder for some modules.
+- Fixed an issue where global modules that contained sub items (such as tabs and sliders) did not sync correctly when updated if multiple instances of the same module existed on a single page in the Visual Builder.
+- Fixed an issue with row width units type that caused an incorrect sync of setting values between the Visual Builder and Backend Builder due to different default values in each version of the builder.
+- Added rel attribute settings to the button module to allow for nofollow and other relationships to be set for links.
+- Fixed a waypoints error that occurred in certain situations with background videos in the Visual Builder.
+- Fixed a bug that sometimes caused locked modules to turn green instead of red.
+- Custom CSS and Google Maps API Key will now be reset correctly when resetting theme options.
+- Fixed a bug where formatting for tabs was mistakenly reset in the Visual Builder in some situations.
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+	* includes/builder/scripts/builder.js
+	* includes/builder/main-structure-elements.php
+	* includes/builder/main-modules.php
+	* includes/builder/scripts/frontend-builder-scripts.js
+	* core/functions.php
+	* epanel/core_functions.php
+
+version 3.0.37 ( updated 3-15-17 )
+- Fixed a bug that caused custom units of measurement to be replaced with "px" when using range slider inputs in the Divi Builder.
+- Fixed a bug that caused an unwanted save warning to appear when leaving the Divi Builder when the page contained a global row or section, even when no unsaved changes existed on the page. 
+- Fixed a bug that caused multiple instances of the same global module, row or section to not sync correctly when one of the copies was edited in the Visual Builder.
+- Fixed disappearing responsive editing tabs in the Visual Builder.
+	* includes/builder/scripts/builder.js
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+
+version 3.0.36 ( updated 3-13-17 )
+- Fixed an issue that caused the Visual Builder to fail to load on websites hosted with WP Engine. This was due to the fact that WP Engine secretly disables the WordPress Heartbeat behind the scenes, which is something the Visual Builder uses for Auto Saves and Divi Builder Sync.
+- Fixed issue with the Divi Builder content not loading in Firefox 52 due to the browser's mishandling of CSS animations.
+- Fixed a bug that prevented custom CSS classes and ID's from appearing in the slider settings modal.
+- Fixed a default settings value mismatch between the Visual Builder and Backend Builder for the parallax mode option for section background images.
+- Fixed a bug that caused default image animation styles to be reset after saving a page in the Visual Builder if the Module Customizer had been used to adjust the default image animation behavior. 
+- The TinyMCE interface for adding new links will now be correctly positioned above the module settings modal in the Visual Builder.
+- Custom page background colors will now render inside of responsive preview modes in the Visual Builder.
+- Number counter modules that include comas will now animate correctly.
+- Fixed an issue where the tabs module lost it's custom colors after using the inline editor to edit text within a tab in the Visual Builder.
+- Fixed a bug that caused unwanted spacing to be added to the top of blurb modules after having disabled icon/image placement.
+- Fixed a bug that caused button border width options to render incorrectly in the Visual Builder.
+- Fixed PHP warning that occurred when adding any empty social media follow module to the page.
+- Gutter widths can no longer be set to "0" since "1" is actually the lowest gutter width value.
+- Improved the way that draggable row width adjustments are stored in the Visual Builder editing history. 
+- Changed the order of font style options in the Visual Builder so that they are the same as the Backend Builder.
+- Custom responsive padding set for Specialty Sections will now render correctly.
+- Prevented modules from being copied and pasted into locked rows. 
+- Locked modules are no longer movable in the Visual Builder.
+- Locked module settings windows will no longer be opened when double clicking a locked module.
+- Fixed a fatal error that occurred in the cron used for split testing in certain situations. 
+	* includes/builder/scripts/builder.js
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+	* includes/builder/main-modules.php
+	* includes/builder/scripts/frontend-builder-scripts.js
+	* includes/builder/class-et-builder-element.php
+	* includes/builder/main-structure-elements.php
+	* includes/builder/ab-testing.php
+	* inclues/builder/styles/style.css
+
 version 3.0.35 ( updated 3-2-2017 )
 - When editing a page in the Backend Builder and the Visual Builder at the same time, changes made in both tabs will be synced when switching between tabs to ensure that no changes are lost.
 - Added auto-save functionality to the Visual Builder. The Visual Builder will now automatically save your work and back it up to your database just in case something goes wrong.
@@ -29,6 +126,7 @@ version 3.0.35 ( updated 3-2-2017 )
 - Improved the UX for creating lists in the Inline Editor. 
 - Individual tab styles will now correctly override the parent tab module styles. 
 	* includes/builder/scripts/builder.js
+	* includes/builder/frontend-builder/bundle.js
 	* includes/builder/class-et-builder-element.php
 	* includes/builder/frontend-builder/assets/css/style.css
 	* includes/builder/scripts/frontend-builder-scripts.js
@@ -65,6 +163,7 @@ version 3.0.33 ( updated 2-6-2017 )
 - Improved slider rendering times and accuracy in the Visual Builder.
 - Custom body font will now be aplied to the read more link in the blog module.
 	* includes/builder/scripts/builder.js
+	* includes/builder/frontend-builder/bundle.js
 	* includes/builder/frontend-builder/assets/css/style.css
 	* includes/builder/functions.php
 	* includes/builder/scripts/frontend-builder-scripts.js

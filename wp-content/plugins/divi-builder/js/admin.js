@@ -108,7 +108,8 @@
 			var $this_button = $( this ),
 				$this_container = $this_button.closest( 'ul' ),
 				$this_spinner = $this_container.find( 'span.spinner' ),
-				api_key = $this_container.find( '.google_api_key' ).val();
+				api_key = $this_container.find( '.google_api_key' ).val(),
+				enqueue_google_maps_script = $this_container.find('.enqueue_google_maps_script').is(':checked') ? 'on' : false;
 
 			$.ajax({
 				type: 'POST',
@@ -116,7 +117,8 @@
 				data: {
 					action : 'et_builder_save_google_api_settings',
 					et_builder_nonce : builder_settings.et_builder_nonce,
-					et_builder_google_api_key : api_key
+					et_builder_google_api_key : api_key,
+					et_builder_enqueue_google_maps_script : enqueue_google_maps_script
 				},
 				beforeSend: function( data ) {
 					$this_spinner.addClass( 'et_dashboard_spinner_visible' );

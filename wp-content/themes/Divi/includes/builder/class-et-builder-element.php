@@ -28,6 +28,10 @@ class ET_Builder_Element {
 	// number of times shortcode_callback function has been executed
 	private $_shortcode_callback_num;
 
+	// number of times shortcode_callback function has been executed for the shop module
+	// see the returned $object in the _shortcode_passthru_callback() method
+	private static $_shop_shortcode_callback_num = 0;
+
 	// priority number, applied to some CSS rules
 	private $_style_priority;
 
@@ -598,6 +602,11 @@ class ET_Builder_Element {
 			}
 		}
 
+		// Create secondary attribute for transparent_background in VB for precise comparison to avoid saving default value
+		if ( et_is_builder_plugin_active() && 'et_pb_section' === $this->slug && isset( $this->shortcode_atts['transparent_background'] ) && '' !== $this->shortcode_atts['transparent_background'] ) {
+			$attrs['transparent_background_fb'] = $this->shortcode_atts['transparent_background'];
+		}
+
 		foreach( $this->shortcode_atts as $shortcode_attr_key => $shortcode_attr_value ) {
 			if ( isset( $fields[ $shortcode_attr_key ]['type'] ) && 'computed' === $fields[ $shortcode_attr_key ]['type'] ) {
 
@@ -618,7 +627,10 @@ class ET_Builder_Element {
 			}
 
 			// dont set the default, unless, lol, the value is literally 'default'
-			if ( isset( $fields[ $shortcode_attr_key ]['default'] ) && $value === $fields[ $shortcode_attr_key ]['default'] && $value !== 'default' ) {
+			// NOTE: bypass shortcode trimming for section's transparent background attribute in plugin, to preserve BB behaviour in VB
+			// which is loading 'default' if no attribute found, then switch it accordinly to either on/off on settings modal saving process
+			$is_plugin_section_transparent_background = et_is_builder_plugin_active() && 'et_pb_section' === $this->slug && 'transparent_background' === $shortcode_attr_key;
+			if ( isset( $fields[ $shortcode_attr_key ]['default'] ) && $value === $fields[ $shortcode_attr_key ]['default'] && $value !== 'default' && ! $is_plugin_section_transparent_background ) {
 				$value = '';
 			}
 
@@ -643,7 +655,7 @@ class ET_Builder_Element {
 				$value = $shortcode_attr_value;
 			}
 
-			if ( !empty( $value ) ) {
+			if ( '' !== $value ) {
 				$attrs[$shortcode_attr_key] = is_string($value) ? html_entity_decode($value) : $value;
 			}
 		}
@@ -696,6 +708,43 @@ class ET_Builder_Element {
 			$attrs = new stdClass();
 		}
 
+		$module_type = $this->type;
+
+		// Ensuring that module which uses another module's template (i.e. accordion item uses toggle's
+		// component) has correct $this->type value. This is covered on front-end, but it causes inheriting
+		// module uses its template's value on _shortcode_passthru_callback()
+		if ( $this->slug !== $function_name && isset( $_POST ) && isset( $_POST['et_post_type'] ) ) {
+			$et_post_type = $_POST['et_post_type'];
+			$parent_modules = self::get_parent_modules( $et_post_type);
+			$function_module = false;
+
+			if ( isset( $parent_modules[ $function_name ] ) ) {
+				$function_module = $parent_modules[ $function_name ];
+			} else {
+				$child_modules = self::get_child_modules( $et_post_type );
+
+				if ( isset( $child_modules[ $function_name] ) ) {
+					$function_module = $child_modules[ $function_name ];
+				}
+			}
+
+			if ( $function_module && isset( $function_module->type ) ) {
+				$module_type = $function_module->type;
+			}
+		}
+
+		// Get the current shortcode index
+		$shortcode_index = $this->_shortcode_callback_num;
+
+		// If this is a shop module use the Shop module shortcode index
+		// Shop module creates a new class instance which resets the $_shortcode_callback_num value
+		// ( see get_shop_html() method of ET_Builder_Module_Shop class in main-modules.php )
+		// so we use a static property to track its proper shortcode index
+		if ( 'et_pb_shop' === $function_name ) {
+			$shortcode_index = self::$_shop_shortcode_callback_num;
+			self::$_shop_shortcode_callback_num++;
+		}
+
 		// Build object.
 		$object = array(
 			'_i'                => $_i,
@@ -705,12 +754,12 @@ class ET_Builder_Element {
 			'child_slug'        => $this->child_slug,
 			'fb_support'        => $this->fb_support,
 			'parent_address'    => $parent_address,
-			'shortcode_index'   => $this->_shortcode_callback_num,
+			'shortcode_index'   => $shortcode_index,
 			'type'              => $function_name,
 			'component_path'    => $component_path,
 			'attrs'             => $attrs,
 			'content'           => $prepared_content,
-			'is_module_child'   => 'child' === $this->type,
+			'is_module_child'   => 'child' === $module_type,
 			'prepared_styles'   => ! $this->fb_support ? ET_Builder_Element::get_style() : '',
 		);
 
@@ -2255,6 +2304,7 @@ class ET_Builder_Element {
 						esc_attr( sprintf( 'parseFloat( %1$s )', $field_name ) ),
 						( '' !== $default ? floatval( $default ) : '' )
 					);
+					$fixed_range = isset($field['fixed_range']) && $field['fixed_range'];
 
 					$range_settings_html = '';
 					$range_properties = apply_filters( 'et_builder_range_properties', array( 'min', 'max', 'step' ) );
@@ -2268,12 +2318,13 @@ class ET_Builder_Element {
 					}
 
 					$range_el = sprintf(
-						'<input type="range" class="et-pb-main-setting et-pb-range%4$s" data-default="%2$s"%1$s%3$s%5$s />',
+						'<input type="range" class="et-pb-main-setting et-pb-range%4$s%6$s" data-default="%2$s"%1$s%3$s%5$s />',
 						$value,
 						esc_attr( $default ),
 						$range_settings_html,
 						$need_mobile_options ? ' et_pb_setting_mobile et_pb_setting_mobile_desktop et_pb_setting_mobile_active' : '',
-						$need_mobile_options ? ' data-device="desktop"' : ''
+						$need_mobile_options ? ' data-device="desktop"' : '',
+						$fixed_range ? ' et-pb-fixed-range' : ''
 					);
 
 					if ( $need_mobile_options ) {
@@ -2289,12 +2340,13 @@ class ET_Builder_Element {
 								( '' !== $default ? floatval( $default ) : '' )
 							);
 							$range_el .= sprintf(
-								'<input type="range" class="et-pb-main-setting et-pb-range et_pb_setting_mobile et_pb_setting_mobile_%3$s" data-default="%1$s"%4$s%2$s data-device="%3$s"%5$s/>',
+								'<input type="range" class="et-pb-main-setting et-pb-range et_pb_setting_mobile et_pb_setting_mobile_%3$s%6$s" data-default="%1$s"%4$s%2$s data-device="%3$s"%5$s/>',
 								esc_attr( $default ),
 								$range_settings_html,
 								esc_attr( $device_type ),
 								$value_mobile_range,
-								$has_saved_value
+								$has_saved_value,
+								$fixed_range ? ' et-pb-fixed-range' : ''
 							);
 						}
 					}

@@ -1,3 +1,68 @@
+version 2.0.3 ( updated 4-4-17 )
+- Fixed a bug that caused unwanted spacing to remain on the page after closing a settings modal using the ESC hotkey in the Visual Builder when the modal was snapped to the side of the page. 
+- Fixed typo in the shop module settings modal.
+- Fixed a typo in the testimonial module settings that caused an unwanted comma to appear in the Visual Builder.
+- Fixed a bug that caused design setting changes to shop modules made in the Visual Builder to apply to all shop modules on the page.
+- Fixed a bug that caused an unwanted save warning to appear after having saved the page while the Inline Editor was currently editing a piece of text that contained a third party shortcode.
+- Fixed a bug that caused quotes within module content to be replaced with HTML entities on the front end when used within global modules.
+- Fixed a bug that caused an unwanted save warning to appear after leaving a page that contained certain types of global rows and sections.
+	* includes/builder/scripts/builder.js
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+	* includes/builder/class-et-builder-element.php
+
+version 2.0.2 ( updated 3-23-17 )
+- Fixed unwanted "Your Save Has Failed" warning that appeared even when the save was performed successfully when the Visual Builder was used with certain third party plugins.
+- Fixed "Call to undefined function et_fb_enabled()" error that occurred when using some third party plugins that modify the WordPress loading flow.
+- Fixed a bug that made it impossible to disable the Divi Builder if the original version of the page being restored contained no data. 
+- Fixed compatibility issue with BackupGuard and other plugins that caused the Divi Builder to fail when attempting to edit modules due to the de-registering of the WordPress heartbeat.
+- Added graceful failures for situations where the WordPress heartbeat fails to load or is turned off. The Divi Builder will no longer fail to load in these situations, but instead will load without the features that rely on the heartbeat.
+- Fixed a bug that caused multiple rows of tab buttons to flow into tab content.
+- Added missing localization for the contact module submit button.
+- Removed empty paragraph tag that was added to CTA modules in the Visual Builder even when the content field was empty.
+	* includes/builder/ab-testing.php
+	* includes/builder/framework.php
+	* includes/builder/main-modules.php
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+	* includes/builder/frontend-builder/init.php
+	* includes/builder/frontend-builder/app/lib/autosave.js
+	* includes/builder/frontend-builder/app/lib/heartbeat.js
+	* includes/builder/scripts/builder.js
+	* includes/builder/functions.php
+
+version 2.0.1 ( updated 3-20-17 )
+- Fixed a bug that caused an unwanted save warning message to appear when leaving a recently-saved page that contained certain combinations of global rows and sections. 
+- Fixed a bug in IE11 and below that made it impossible to open module settings in the Divi Builder for some modules.
+- Fixed an issue where global modules that contained sub items (such as tabs and sliders) did not sync correctly when updated if multiple instances of the same module existed on a single page in the Visual Builder.
+- Fixed an issue with row width units type that caused an incorrect sync of setting values between the Visual Builder and Backend Builder due to different default values in each version of the builder.
+- Added rel attribute settings to the button module to allow for nofollow and other relationships to be set for links.
+- Fixed a waypoints error that occurred in certain situations with background videos in the Visual Builder.
+- Fixed a bug that sometimes caused locked modules to turn green instead of red.
+- Custom CSS and Google Maps API Key will now be reset correctly when resetting theme options.
+- Fixed a bug where formatting for tabs was mistakenly reset in the Visual Builder in some situations.
+	* includes/builder/frontend-builder/bundle.js
+	* includes/builder/frontend-builder/assets/css/style.css
+	* includes/builder/scripts/builder.js
+	* includes/builder/main-structure-elements.php
+	* includes/builder/main-modules.php
+	* includes/builder/scripts/frontend-builder-scripts.js
+	* core/functions.php
+	* epanel/core_functions.php
+
+version 2.0 ( updated 3-15-2017 )
+- Updated the Divi Builder to the latest version, including the all new Visual Builder.
+- Fixed various issues with settings not rendering correctly.
+- Improved compatibility with some of the most popular third party themes in the world. 
+	* This is a comprehensive update that affects most plugin files
+	* includes/builder/
+	* theme-compat/
+	* theme-compat.php
+	* css/
+	* core/
+	* functions.php
+	* divi-builder.php
+
 version 1.3.10 ( updated 08-18-2016 )
 - Fixed the issue with the Divi Builder not loading on some websites due to loading delay of TinyMCE in the latest version of WordPress.
 	* includes/builder/scripts/builder.js
