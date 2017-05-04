@@ -1,3 +1,25 @@
+version 2.0.5 ( updated 4-26-2017 )
+- Fixed error that occured on websites running PHP 5.2. 
+- Fixed error that occured when updating plugins for some customers.
+- Fixed a bug that caused range slider inputs to default to "0" after saving a module in the Divi Builder.
+	* includes/builder/scripts/builder.js
+	* core/components/Updates.php
+	* core/functions.php
+	* core/main_functions.php
+	* core/init.php
+
+version 2.0.4 ( updated 4-25-17 )
+- Updated Divi Builder with new /core structure.
+- Added new interface to the Divi Builder for managing email providers for the Email Optin module (API keys are no longer managed in the Divi Theme Options).
+- Fixed a bug that caused the draggable padding indicator to remain static until the mouse exited the area after dragging.
+- Fixed bug that caused Right Click > Disable to not re-render correctly in the Visual Builder.
+- Range slider values that exceed the default range will no longer be reset when saved. 
+- Fixed issue where the use of [...] inside of Slider headings would cause the shortcode the malfunction.
+	* includes/builder/scripts/builder.js
+	* includes/builder/class-et-builder-element.php
+	* includes/builder/frontend-builder/bundle.js
+	* core/*
+
 version 2.0.3 ( updated 4-4-17 )
 - Fixed a bug that caused unwanted spacing to remain on the page after closing a settings modal using the ESC hotkey in the Visual Builder when the modal was snapped to the side of the page. 
 - Fixed typo in the shop module settings modal.

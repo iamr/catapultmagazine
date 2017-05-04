@@ -109,14 +109,6 @@ $options = array (
 				   	'et_save_values' => true,
 			),
 
-			array( "name" => esc_html__( "MailChimp API Key", $themename ),
-                   "id" => $shortname . "_mailchimp_api_key",
-                   "std" => "",
-                   "type" => "text",
-                   "validation_type" => "nohtml",
-				   "desc" => et_get_safe_localization( sprintf( __( 'Enter your MailChimp API key. You can create an api key <a target="_blank" href="%1$s">here</a>', $themename ), 'https://us3.admin.mailchimp.com/account/api/' ) ),
-			),
-
 			array(
 				"name"              => esc_html__( "Google API Key", $themename ),
 				"id"                => "et_google_api_settings_api_key",
@@ -139,24 +131,6 @@ $options = array (
 				"std"               => "on",
 				"desc"              => esc_html__( "Disable this option to remove the Google Maps API script from your Divi Builder Pages. This may improve compatibility with third party plugins that also enqueue this script. Please Note: Modules that rely on the Google Maps API in order to function properly, such as the Maps and Fullwidth Maps Modules, will still be available but will not function while this option is disabled (unless you manually add Google Maps API script).", $themename ),
 			),
-
-			array( "name" => esc_html__( "Aweber Authorization", $themename ),
-                   "type" => "callback_function",
-				   "desc" => esc_html__( 'Authorize your Aweber account here.', $themename ),
-				   "function_name" => 'et_aweber_authorization_option',
-			),
-
-			array( "name" => esc_html__( "Regenerate MailChimp Lists", $themename ),
-                   "id" => $shortname . "_regenerate_mailchimp_lists",
-                   "type" => "checkbox",
-                   "std" => "false",
-                   "desc" => esc_html__( "By default, MailChimp lists are cached for one day. If you added new list, but it doesn't appear within the Email Optin module settings, activate this option. Don't forget to disable it once the list has been regenerated.",$themename ) ),
-
-			array( "name" =>esc_html__( "Regenerate Aweber Lists", $themename ),
-                   "id" => $shortname . "_regenerate_aweber_lists",
-                   "type" => "checkbox2",
-                   "std" => "false",
-                   "desc" =>esc_html__( "By default, Aweber lists are cached for one day. If you added new list, but it doesn't appear within the Email Optin module settings, activate this option. Don't forget to disable it once the list has been regenerated.", $themename ) ),
 
 			array( "name" =>esc_html__( "Show Facebook Icon", $themename ),
                    "id" => $shortname . "_show_facebook_icon",

@@ -1268,7 +1268,7 @@
 }
 .et_divi_builder #et_builder_outer_content .mejs-controls .mejs-time-rail .mejs-time-float-corner {
   border: solid 5px #eee;
-  border-color: #eeeeee rgba(0, 0, 0, 0) rgba(0, 0, 0, 0);
+  border-color: #eee rgba(0, 0, 0, 0) rgba(0, 0, 0, 0);
   border-radius: 0;
 }
 .et_divi_builder #et_builder_outer_content .mejs-container .mejs-controls .mejs-time {

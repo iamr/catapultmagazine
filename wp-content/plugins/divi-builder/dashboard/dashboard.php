@@ -721,7 +721,7 @@ class ET_Dashboard_v2 {
 					foreach( $value[ 'contents' ] as $key => $value ) {
 						$current_location = $key;
 						$options_prefix = $current_section . '_' . $key;
-						$options_array = $dashboard_options_assigned[$current_section . '_' . $key . '_options'];
+						$options_array = isset( $dashboard_options_assigned[$current_section . '_' . $key . '_options'] ) ? $dashboard_options_assigned[$current_section . '_' . $key . '_options'] : array();
 						$sidebar_section = 'sidebar' == $key ? true : false;
 						printf(
 							'<div class="et_dashboard_tab_content et_dashboard_tab_content_%1$s_%2$s">',

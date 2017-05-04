@@ -3093,7 +3093,8 @@
 					$email = $newsletter_container.find( 'input[name="et_pb_signup_email"]' ),
 					list_id = $newsletter_container.find( 'input[name="et_pb_signup_list_id"]' ).val(),
 					$result = $newsletter_container.find( '.et_pb_newsletter_result' ).hide(),
-					service = $submit.closest( '.et_pb_newsletter_form' ).data( 'service' ) || 'mailchimp';
+					service = $submit.closest( '.et_pb_newsletter_form' ).data( 'service' ) || 'mailchimp',
+					account = $newsletter_container.find( 'input[name="et_pb_signup_account_name"]' ).val();
 
 				$firstname.removeClass( 'et_pb_signup_error' );
 				$lastname.removeClass( 'et_pb_signup_error' );
@@ -3130,7 +3131,8 @@
 						et_firstname : $firstname.val(),
 						et_lastname : $lastname.val(),
 						et_email : $email.val(),
-						et_service : service
+						et_service : service,
+						et_account: account
 					},
 					beforeSend: function() {
 						$newsletter_container
@@ -3162,7 +3164,7 @@
 						}
 					}
 				} );
-			}
+			};
 
 			window.et_fix_testimonial_inner_width = function() {
 				var window_width = $( window ).width();

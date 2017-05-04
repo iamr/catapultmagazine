@@ -6,12 +6,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 //Array of all sections. All sections will be added into sidebar navigation except for the 'header' section.
 $all_sections = array(
-	'newsletter'  => array(
-		'title'    => esc_html__( 'Newsletter Settings', 'et_builder_plugin' ),
-		'contents' => array(
-			'main'   => esc_html__( 'Main', 'bloom' ),
-		),
-	),
 	'updates'  => array(
 		'title'    => esc_html__( 'Updates', 'et_builder_plugin' ),
 		'contents' => array(
@@ -44,78 +38,6 @@ $all_sections = array(
  */
 
 $dashboard_options_all = array(
-
-	'mailchimp' => array(
-		'section_start' => array(
-			'type'     => 'section_start',
-			'title'    => esc_html__( 'MailChimp', 'et_builder' ),
-		),
-
-		'option' => array(
-			'type'                 => 'input_field',
-			'subtype'              => 'text',
-			'placeholder'          => '',
-			'title'                => esc_html__( 'MailChimp API Key:', 'et_builder_plugin' ),
-			'name'                 => 'mailchimp_key',
-			'hide_contents'        => true,
-			'validation_type'      => 'simple_text',
-			'hide_contents'        => true,
-			'hint_text'            => sprintf(
-				'%1$s<a href="%3$s" target="_blank">%2$s</a>',
-				esc_html__( 'Enter your MailChimp API key. You can create an api key ', 'et_builder_plugin' ),
-				esc_html__( 'here', 'et_builder_plugin' ),
-				esc_url( 'https://us3.admin.mailchimp.com/account/api/' )
-			),
-		),
-
-		'regenerate_lists' => array(
-			'type'            => 'button',
-			'title'           => esc_html__( 'Regenerate MailChimp Lists', 'et_builder_plugin' ),
-			'link'            => '#',
-			'class'           => 'et_dashboard_get_lists et_pb_mailchimp',
-			'authorize'       => false,
-		),
-	),
-
-	'aweber' => array(
-		'section_start' => array(
-			'type'     => 'section_start',
-			'title'    => esc_html__( 'Aweber', 'et_builder' ),
-		),
-		'aweber_key' => array(
-			'type'                 => 'input_field',
-			'subtype'              => 'text',
-			'placeholder'          => '',
-			'name'                 => 'aweber_key',
-			'title'                => esc_html__( 'AWeber code:', 'et_builder_plugin' ),
-			'default'              => '',
-			'class'                => 'api_option api_option_key',
-			'hide_contents'        => true,
-			'hint_text'            => sprintf(
-				'%3$s <a href="%2$s" target="_blank">%1$s</a> %4$s',
-				esc_html__( 'here', 'et_builder' ),
-				esc_url( 'https://auth.aweber.com/1.0/oauth/authorize_app/b17f3351' ),
-				esc_html__( 'Generate authorization code', 'et_builder_plugin' ),
-				esc_html__( ' then paste in the authorization code and click authorize button', 'et_builder_plugin' )
-			),
-			'validation_type'      => 'simple_text',
-		),
-		'aweber_button' => array(
-			'type'      => 'button',
-			'title'     => esc_html__( 'Authorize AWeber', 'et_builder_plugin' ),
-			'link'      => '#',
-			'class'     => 'et_dashboard_authorize',
-			'action'    => 'aweber',
-			'authorize' => true,
-		),
-		'regenerate_lists' => array(
-			'type'            => 'button',
-			'title'           => esc_html__( 'Regenerate AWeber Lists', 'et_builder_plugin' ),
-			'link'            => '#',
-			'class'           => 'et_dashboard_get_lists et_pb_aweber',
-			'authorize'       => false,
-		),
-	),
 
 	'updates' => array(
 		'section_start' => array(
@@ -207,11 +129,6 @@ $dashboard_options_all = array(
 		),
 	),
 
-	'newsletter_title' => array(
-		'type'  => 'main_title',
-		'title' => esc_html__( 'Newsletter Settings', 'et_builder_plugin' ),
-	),
-
 	'updates_title' => array(
 		'type'  => 'main_title',
 		'title' => esc_html__( 'Authenticate Your Subscription', 'et_builder_plugin' ),
@@ -242,18 +159,6 @@ $dashboard_options_all = array(
  * Note: name of this array shouldn't be changed. $assigned_options variable is being used in ET_Dashboard class as options container.
  */
 $assigned_options = array(
-	'newsletter_main_options' => array(
-		$dashboard_options_all[ 'newsletter_title' ],
-		$dashboard_options_all[ 'mailchimp' ][ 'section_start' ],
-			$dashboard_options_all[ 'mailchimp' ][ 'option' ],
-			$dashboard_options_all[ 'mailchimp' ][ 'regenerate_lists' ],
-			$dashboard_options_all[ 'end_of_section' ],
-		$dashboard_options_all[ 'aweber' ][ 'section_start' ],
-			$dashboard_options_all[ 'aweber' ][ 'aweber_key' ],
-			$dashboard_options_all[ 'aweber' ][ 'aweber_button' ],
-			$dashboard_options_all[ 'aweber' ][ 'regenerate_lists' ],
-			$dashboard_options_all[ 'end_of_section' ],
-	),
 	'updates_main_options' => array(
 		$dashboard_options_all[ 'updates_title' ],
 		$dashboard_options_all[ 'updates' ][ 'section_start' ],

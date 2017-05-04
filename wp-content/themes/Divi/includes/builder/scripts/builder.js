@@ -2,7 +2,7 @@ var ET_PageBuilder = ET_PageBuilder || {};
 
 window.wp = window.wp || {};
 
-window.et_builder_version = '3.0.40';
+window.et_builder_version = '3.0.42';
 
 ( function($) {
 	var et_error_modal_shown = window.et_error_modal_shown,
@@ -173,7 +173,7 @@ window.et_builder_version = '3.0.40';
 				return false;
 			}
 
-			if ( ! _.isUndefined( et_pb_options.force_cache_purge ) && '1' == et_pb_options.force_cache_purge ) {
+			if ( ! _.isUndefined( et_pb_options.force_cache_purge ) && 'true' === et_pb_options.force_cache_purge ) {
 				return false;
 			}
 
@@ -2541,10 +2541,15 @@ window.et_builder_version = '3.0.40';
 					this_parent_view = typeof that.model.get( 'parent' ) !== 'undefined' ? ET_PageBuilder_Layout.getView( that.model.get( 'parent' ) ) : '',
 					global_holder_view = '' !== this_parent_view && ( typeof that.model.get( 'et_pb_global_module' ) === 'undefined' || '' === that.model.get( 'et_pb_global_module' ) ) ? this_parent_view : this_view,
 					update_template_only = false,
-					close_modal = _.isUndefined( close_modal ) ? true : close_modal;
+					close_modal = _.isUndefined( close_modal ) ? true : close_modal,
+					is_disabled = 'not-allowed' === $( event.target ).css( 'cursor' );
 
 
 				event.preventDefault();
+
+				if ( is_disabled ) {
+					return;
+				}
 
 				// Disabling state and mark it. It takes a while for generating shortcode,
 				// so ensure that user doesn't update the page before shortcode generation has completed
@@ -2904,8 +2909,13 @@ window.et_builder_version = '3.0.40';
 
 			saveTemplate : function( event ) {
 				var module_width = -1 !== this.model.get( 'module_type' ).indexOf( 'fullwidth' ) ? 'fullwidth' : 'regular',
-					columns_layout = typeof this.model.get( 'columns_layout' ) !== 'undefined' ? this.model.get( 'columns_layout' ) : '0';
+					columns_layout = typeof this.model.get( 'columns_layout' ) !== 'undefined' ? this.model.get( 'columns_layout' ) : '0',
+					is_disabled = 'not-allowed' === $( event.target ).css( 'cursor' );
 				event.preventDefault();
+
+				if ( is_disabled ) {
+					return;
+				}
 
 				et_pb_create_prompt_modal( 'save_template', this, module_width, columns_layout );
 			},
@@ -3696,7 +3706,8 @@ window.et_builder_version = '3.0.40';
 					$icon_font_list,
 					$et_affect_fields,
 					$et_form_validation,
-					$icon_font_options = [ "et_pb_font_icon", "et_pb_button_one_icon", "et_pb_button_two_icon", "et_pb_button_icon" ];
+					$icon_font_options = [ "et_pb_font_icon", "et_pb_button_one_icon", "et_pb_button_two_icon", "et_pb_button_icon" ],
+					$add_email_account_buttons;
 
 				// Replace encoded double quotes with normal quotes,
 				// escaping is applied in modules templates
@@ -3729,6 +3740,8 @@ window.et_builder_version = '3.0.40';
 				$et_form_validation = $this_el.find('form.validate');
 
 				$warning = $this_el.find('.et-pb-option--warning');
+
+				$add_email_account_buttons = $this_el.find('.et_pb_email_add_account');
 
 				// validation
 				if ( $et_form_validation.length ) {
@@ -3839,6 +3852,10 @@ window.et_builder_version = '3.0.40';
 
 				if ( $gallery_button.length ) {
 					et_pb_activate_gallery( $gallery_button );
+				}
+
+				if ( $add_email_account_buttons.length ) {
+					et_pb_email_lists_buttons_setup( $add_email_account_buttons, this );
 				}
 
 				if ( $time_picker.length ) {
@@ -7657,6 +7674,7 @@ window.et_builder_version = '3.0.40';
 								// Make sure double quotes are encoded, before adding values to shortcode
 								if ( typeof setting_value === 'string' ) {
 									setting_value = setting_value.replace( /\"/g, '%22' ).replace( /\\/g, '%92' );
+									setting_value = setting_value.replace( /\[/g, '%91' ).replace( /\]/g, '%93' );
 								}
 
 								// make sure admin label is always on the same position to correctly save the shortcode into library
@@ -8129,7 +8147,7 @@ window.et_builder_version = '3.0.40';
 
 		function et_pb_activate_gallery( $gallery_button ) {
 			$gallery_button.click( function( event ) {
-				var $this_el = $(this)
+				var $this_el = $(this),
 					$gallery_ids = $gallery_button.closest( '.et-pb-option' ).siblings( '.et-pb-option-gallery_ids' ).find( '.et-pb-gallery-ids-field' ),
 					$gallery_orderby = $gallery_button.closest( '.et-pb-option' ).siblings( '.et-pb-option-gallery_orderby' ).find( '.et-pb-gallery-ids-field' );
 
@@ -8185,6 +8203,306 @@ window.et_builder_version = '3.0.40';
 
 				});
 
+			});
+		}
+
+		function et_pb_email_lists_select_get_provider( $select ) {
+			return $select
+				.siblings( 'input' )
+				.attr( 'id' )
+				.replace( 'et_pb_', '' )
+				.replace( '_list', '' );
+		}
+
+		function et_pb_email_lists_add_new_account( $accounts_select, settingsView ) {
+			var provider      = et_pb_email_lists_select_get_provider( $accounts_select );
+			var $container    = $accounts_select.closest( '.et-pb-option--select_with_option_groups' );
+			var $account_name = $container.parent().find('.et_pb_account_name:visible');
+			var account_name  = $account_name.val();
+			var $api_key      = $container.parent().find('.et_pb_api_key:visible');
+			var api_key       = $api_key.val();
+
+			function complete( data ) {
+				$accounts_select
+					.val( $accounts_select.data( 'previous_value' ) )
+					.trigger( 'change' );
+
+				$account_name.val( '' );
+				$api_key.val( '' );
+
+				ET_PageBuilder_Events.trigger( 'et-pb-loading:ended' );
+
+				if ( 'error' in data && data.error ) {
+					alert( data.message );
+				}
+			}
+
+			$.ajax({
+				type: 'POST',
+				url: et_pb_options.ajaxurl,
+				data: {
+					action: 'et_builder_email_add_account',
+					et_builder_email_add_account_nonce: et_pb_options.et_builder_email_add_account_nonce,
+					et_provider: provider,
+					et_account: account_name,
+					et_api_key: api_key,
+					et_bb: true
+				}
+
+			}).done( function( data, status, response ) {
+				data = JSON.parse( data );
+
+				$accounts_select.html( _.template( data.accounts_list )( settingsView.model.attributes ) );
+				complete( data );
+
+			}).fail( complete );
+		}
+
+		function et_pb_email_fetch_lists( $accounts_select, $button, settingsView ) {
+			var provider     = et_pb_email_lists_select_get_provider( $accounts_select );
+			var account_name = $accounts_select.data( 'selected_account' );
+
+			function complete( data ) {
+				$accounts_select
+					.val( $accounts_select.data( 'previous_value' ) )
+					.trigger( 'change' );
+
+				$button.removeClass( 'fetch_lists_in_progress' );
+				ET_PageBuilder_Events.trigger( 'et-pb-loading:ended' );
+
+				if ( 'error' in data && data.error ) {
+					alert( data.message );
+				}
+			}
+
+			$.ajax({
+				type: 'POST',
+				url: et_pb_options.ajaxurl,
+				data: {
+					action: 'et_builder_email_get_lists',
+					et_builder_email_fetch_lists_nonce: et_pb_options.et_builder_email_fetch_lists_nonce,
+					et_provider: provider,
+					et_account: account_name,
+					et_bb: true
+				}
+
+			}).done( function( data, status, response ) {
+				data = JSON.parse( data );
+
+				$accounts_select.html( _.template( data.accounts_list )( settingsView.model.attributes ) );
+				complete( data );
+
+			}).fail( complete );
+		}
+
+		function et_pb_email_remove_account( $accounts_select, settingsView ) {
+			var provider     = et_pb_email_lists_select_get_provider( $accounts_select );
+			var account_name = $accounts_select.data( 'selected_account' );
+
+			function complete( data ) {
+				$accounts_select
+					.val( 'none' )
+					.trigger( 'change' );
+
+				ET_PageBuilder_Events.trigger( 'et-pb-loading:ended' );
+
+				if ( 'error' in data && data.error ) {
+					alert( data.message );
+				}
+			}
+
+			$.ajax({
+				type: 'POST',
+				url: et_pb_options.ajaxurl,
+				data: {
+					action: 'et_builder_email_remove_account',
+					et_builder_email_remove_account_nonce: et_pb_options.et_builder_email_remove_account_nonce,
+					et_provider: provider,
+					et_account: account_name,
+					et_bb: true
+				}
+
+			}).done( function( data, status, response ) {
+				data = JSON.parse( data );
+
+				$accounts_select.html( _.template( data.accounts_list )( settingsView.model.attributes ) );
+				complete( data );
+
+			}).fail( complete );
+		}
+
+		function et_pb_email_setup_submit_cancel_buttons( $buttons, $accounts_select, settingsView ) {
+			$buttons.on( 'click', function() {
+				if ( $(this).hasClass( 'et_pb_email_submit' ) ) {
+					// Submit button
+					ET_PageBuilder_Events.trigger( 'et-pb-loading:started' );
+					et_pb_email_lists_add_new_account( $accounts_select, settingsView );
+				} else {
+					// Cancel button
+					$accounts_select
+						.val( $accounts_select.data( 'previous_value' ) )
+						.trigger( 'change' );
+				}
+			});
+
+			$buttons.appendTo( $buttons.parent() );
+		}
+
+		function et_pb_email_lists_buttons_setup( $add_account_buttons, settingsView ) {
+			$add_account_buttons.each( function() {
+				var $add_account_button    = $(this);
+				var $accounts_select       = $add_account_button.siblings( 'select' );
+				var $fetch_lists_button    = $add_account_button.siblings( '.et_pb_email_force_fetch_lists' );
+				var $remove_account_button = $add_account_button.siblings( '.et_pb_email_remove_account' );
+				var $value_field           = $(this).siblings( 'input' );
+				var affects                = $value_field.data( 'affects' ).split(', ');
+				var $affects;
+
+				affects  = _.map( affects, function( affect ) { return '#et_pb_' + affect; } ).join( ', ' );
+				$affects = $(this).closest( '.et-pb-options-tab' ).find( affects );
+
+				$affects.one( 'et-pb-option-field-shown', function() {
+					var $buttons = $(this).siblings( 'button' );
+					et_pb_email_setup_submit_cancel_buttons( $buttons, $accounts_select, settingsView );
+				});
+
+				$fetch_lists_button.data( 'original_text', $fetch_lists_button.text() );
+				$remove_account_button.data( 'original_text', $remove_account_button.text() );
+
+				$accounts_select.on( 'change', function() {
+					var value = $(this).val();
+
+					if ( 'add_new_account' === value && ! $accounts_select.parent().hasClass( 'new_account_in_progress' ) ) {
+						$accounts_select.parent().addClass( 'new_account_in_progress' );
+
+						$('<span>')
+							.text( $accounts_select.data( 'adding_new_account_text' ) )
+							.insertAfter( $accounts_select )
+							.addClass( 'et_pb_email_account_message' );
+
+						$add_account_button
+							.hide()
+							.siblings()
+							.not( 'span' )
+							.hide();
+
+						if ( $accounts_select.siblings( '#et_pb_aweber_list' ).length > 0 ) {
+							window.open( 'https://auth.aweber.com/1.0/oauth/authorize_app/b17f3351' );
+						}
+
+					} else if ( 'fetch_lists' === value && ! $accounts_select.parent().hasClass( 'fetch_lists_in_progress' ) ) {
+						$accounts_select.parent().addClass( 'fetch_lists_in_progress' );
+						ET_PageBuilder_Events.trigger( 'et-pb-loading:started' );
+						et_pb_email_fetch_lists( $accounts_select, $add_account_button, settingsView );
+
+					} else if ( 'remove_account' === value && ! $accounts_select.parent().hasClass( 'remove_account_in_progress' )) {
+						$accounts_select.parent().addClass( 'remove_account_in_progress' );
+
+						$add_account_button
+							.hide()
+							.siblings('p')
+							.hide();
+
+						$remove_account_button.text( $remove_account_button.data( 'confirm_text' ) );
+						$fetch_lists_button.text( $fetch_lists_button.data( 'cancel_text' ) );
+
+						var msg = $accounts_select.data( 'confirm_remove_text' ) + ' ' + $accounts_select.data( 'selected_account' );
+
+						$('<span>')
+							.text( msg )
+							.insertAfter( $accounts_select )
+							.addClass( 'et_pb_email_account_message' );
+
+						$accounts_select.hide();
+
+					} else {
+						$accounts_select.parent().removeClass( 'new_account_in_progress remove_account_in_progress fetch_lists_in_progress' );
+
+						var $modal_save_buttons = settingsView.$el.prev().find( '.et-pb-modal-save, .et-pb-modal-save-template' );
+						$modal_save_buttons.css( 'cursor', '' );
+
+						if ( 'none' === value ) {
+							$accounts_select.parent().addClass( 'no_account_selected' );
+						} else {
+							$accounts_select.parent().removeClass( 'no_account_selected' );
+						}
+
+						$add_account_button.show();
+
+						$remove_account_button.text( $remove_account_button.data( 'original_text' ) );
+
+						$fetch_lists_button.text( $fetch_lists_button.data( 'original_text' ) );
+
+						if ( ! value || 'none' === value ) {
+							$remove_account_button.hide();
+							$fetch_lists_button.hide();
+						} else {
+							$remove_account_button.show();
+							$fetch_lists_button.show();
+						}
+
+						$add_account_button.siblings('span').remove();
+						$add_account_button.siblings('p').show();
+
+						$accounts_select.show();
+					}
+				});
+
+				$add_account_button.click( function() {
+					var $modal_save_buttons = settingsView.$el.prev().find( '.et-pb-modal-save, .et-pb-modal-save-template' );
+					$modal_save_buttons.css( 'cursor', 'not-allowed' );
+
+					$accounts_select
+						.data( 'previous_value', $accounts_select.val() )
+						.val( 'add_new_account' )
+						.trigger( 'change' );
+				});
+
+				$fetch_lists_button.click( function() {
+					if ( $accounts_select.parent().hasClass( 'remove_account_in_progress' ) ) {
+						// Cancel button clicked
+						$accounts_select
+							.val( $accounts_select.data( 'previous_value' ) )
+							.trigger( 'change' );
+
+						return;
+					}
+
+					var account = $accounts_select
+						.find(':selected')
+						.parent()
+						.attr('label');
+
+					$accounts_select.data( 'selected_account', account );
+					$accounts_select
+						.data( 'previous_value', $accounts_select.val() )
+						.val( 'fetch_lists' )
+						.trigger( 'change' );
+				});
+
+				$remove_account_button.click( function() {
+					if ( $accounts_select.parent().hasClass( 'remove_account_in_progress' ) ) {
+						ET_PageBuilder_Events.trigger( 'et-pb-loading:started' );
+						et_pb_email_remove_account( $accounts_select, settingsView );
+						return;
+					}
+
+					var account = $accounts_select
+						.find(':selected')
+						.parent()
+						.attr('label');
+
+					if ( ! account ) {
+						return;
+					}
+
+					$accounts_select.data( 'selected_account', account );
+
+					$accounts_select
+						.data( 'previous_value', $accounts_select.val() )
+						.val( 'remove_account' )
+						.trigger( 'change' );
+				});
 			});
 		}
 
@@ -11111,16 +11429,18 @@ window.et_builder_version = '3.0.40';
 				$custom_color_picker        = $container.find( '.et-pb-custom-color-picker' ),
 				$custom_color_choose_button = $container.find( '.et-pb-choose-custom-color-button' ),
 
+				$select_with_option_groups = $container.find( '.et-pb-option-container--select_with_option_groups select' ),
+
 				$yes_no_button_wrapper = $container.find( '.et_pb_yes_no_button_wrapper' ),
 				$yes_no_button         = $container.find( '.et_pb_yes_no_button' ),
-				$yes_no_select         = $container.find( 'select' ),
+				$yes_no_select         = $container.find( '.et_pb_yes_no_button_wrapper select' ),
 				$validate_unit_field   = $container.find( '.et-pb-validate-unit' ),
 				$transparent_bg_option = $container.find( '#et_pb_transparent_background' ),
 
 				$regular_input = $container.find( 'input.regular-text.et_pb_setting_mobile' ),
 				hidden_class = 'et_pb_hidden',
 
-				$custom_css_option = $container.find( '.et-pb-options-tab-custom_css .et-pb-option' )
+				$custom_css_option = $container.find( '.et-pb-options-tab-custom_css .et-pb-option' ),
 
 				$mobile_settings_toggle = $container.find( '.et-pb-mobile-settings-toggle' ),
 				$mobile_settings_tabs   = $container.find( '.et_pb_mobile_settings_tabs' ),
@@ -11411,6 +11731,29 @@ window.et_builder_version = '3.0.40';
 				}
 			}
 
+			$select_with_option_groups.each( function() {
+				var $value_field = $(this).siblings( 'input.et-pb-main-setting' ),
+					values       = $value_field.val().split( '|' ),
+					group        = values.length > 1 ? values[0] : '',
+					value        = values.length > 1 ? values[1] : values[0];
+
+				if ( '' === group ) {
+					group = $(this).find(':selected').parent().attr('label');
+					$value_field
+						.val( group + '|' + value )
+						.trigger( 'change' );
+				}
+
+				$(this).val( value );
+
+				$(this).change( function() {
+					var group = $(this).find(':selected').parent().attr('label') || '';
+					$value_field
+						.val( group + '|' + $(this).val() )
+						.trigger( 'change' );
+				});
+			});
+
 			$yes_no_button_wrapper.each( function() {
 				var $this_el = $( this ),
 					$this_switcher = $this_el.find( '.et_pb_yes_no_button' ),
@@ -11672,6 +12015,7 @@ window.et_builder_version = '3.0.40';
 						}
 
 						$this_el.val( default_value );
+						range_input_value = default_value;
 					}
 
 					// Define defaults for tablet and phone settings on load
@@ -11807,12 +12151,15 @@ window.et_builder_version = '3.0.40';
 						}
 
 						// if the affected field should be displayed, but the field that affects it is not visible, don't show the affected field ( it only can happen on settings page load )
-						if ( this_field_tab_index === affected_field_tab_index && show && ! $this_field.is( ':visible' ) ) {
+						if ( this_field_tab_index === affected_field_tab_index && show && ! $this_field.is( ':visible' ) && ! $this_field.is( '[type="hidden"]' ) ) {
 							show = false;
 						}
 
 						// shows or hides the affected field container
 						$affected_container.toggle( show ).addClass( 'et_pb_animate_affected' );
+
+						var event = $affected_field.is( ':visible' ) ? 'et-pb-option-field-shown' : 'et-pb-option-field-hidden';
+						$affected_field.trigger( event );
 
 						setTimeout( function() {
 							$affected_container.removeClass( 'et_pb_animate_affected' );
@@ -11918,11 +12265,15 @@ window.et_builder_version = '3.0.40';
 			// extend max boundary of the slider if needed
 			if ( slider_value > slider_max ) {
 				$range_slider.attr( 'max', slider_value );
+
+				$range_slider.val(slider_value);
 			}
 
 			// extend min boundary of the slider if needed
 			if ( slider_value < slider_min ) {
 				$range_slider.attr( 'min', slider_value );
+
+				$range_slider.val(slider_value);
 			}
 		}
 
@@ -12258,11 +12609,7 @@ window.et_builder_version = '3.0.40';
 
 				// get array of global Rows and Sections on the page
 				var global_modules = _.filter( ET_PageBuilder_Modules.models, function( model ) {
-					if ( 'module' !== model.attributes.type && typeof model.attributes.et_pb_global_module !== 'undefined' && model.attributes.et_pb_global_module !== '' ) {
-						return true;
-					} else {
-						return false;
-					}
+					return 'module' !== model.attributes.type && typeof model.attributes.et_pb_global_module !== 'undefined' && model.attributes.et_pb_global_module !== '';
 				} );
 
 				// update saved global template for each Section and Row

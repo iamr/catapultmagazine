@@ -24,6 +24,7 @@ class ET_Builder_Element {
 	public $used_tabs = array();
 	public $custom_css_tab;
 	public $fb_support = false;
+	public $dbl_quote_exception_options = array( 'et_pb_font_icon', 'et_pb_button_one_icon', 'et_pb_button_two_icon', 'et_pb_button_icon', 'et_pb_content_new' );
 
 	// number of times shortcode_callback function has been executed
 	private $_shortcode_callback_num;
@@ -249,7 +250,7 @@ class ET_Builder_Element {
 		$font_icon_options = array( 'font_icon', 'button_icon', 'button_one_icon', 'button_two_icon' );
 
 		foreach ( $this->shortcode_atts as $attribute_key => $attribute_value ) {
-			$shortcode_attributes[ $attribute_key ] = in_array( $attribute_key, $font_icon_options ) || preg_match( "/^\%\%\d+\%\%$/i", $attribute_value ) ? $attribute_value : str_replace( array( '%22', '%92' ), array( '"', '\\' ), $attribute_value );
+			$shortcode_attributes[ $attribute_key ] = in_array( $attribute_key, $font_icon_options ) || preg_match( "/^\%\%\d+\%\%$/i", $attribute_value ) ? $attribute_value : str_replace( array( '%22', '%92', '%91', '%93' ), array( '"', '\\', '&#91;', '&#93;' ), $attribute_value );
 		}
 
 		$this->shortcode_atts = $shortcode_attributes;
@@ -409,7 +410,8 @@ class ET_Builder_Element {
 
 				foreach( $this->shortcode_atts as $single_attr => $value ) {
 					if ( isset( $global_atts[$single_attr] ) ) {
-						$this->shortcode_atts[$single_attr] = $global_atts[$single_attr];
+						// replace %22 with double quotes in options to make sure it's rendered correctly
+						$this->shortcode_atts[$single_attr] = is_string( $global_atts[$single_attr] ) && ! in_array( $single_attr, $this->dbl_quote_exception_options ) ? str_replace( '%22', '"', $global_atts[$single_attr] ) : $global_atts[$single_attr];
 					}
 				}
 			}
@@ -592,7 +594,8 @@ class ET_Builder_Element {
 
 				foreach( $this->shortcode_atts as $single_attr => $value ) {
 					if ( isset( $global_atts[$single_attr] ) ) {
-						$this->shortcode_atts[$single_attr] = $global_atts[$single_attr];
+						// replace %22 with double quotes in options to make sure it's rendered correctly
+						$this->shortcode_atts[$single_attr] = is_string( $global_atts[$single_attr] ) && ! in_array( $single_attr, $this->dbl_quote_exception_options ) ? str_replace( '%22', '"', $global_atts[$single_attr] ) : $global_atts[$single_attr];
 					}
 				}
 			} else {
@@ -1820,18 +1823,30 @@ class ET_Builder_Element {
 		return sprintf( 'et_pb_%s', $field['name'] );
 	}
 
+	function process_html_attributes( $field, &$attributes ) {
+		if ( is_array( $field['attributes'] )  ) {
+			foreach( $field['attributes'] as $attribute_key => $attribute_value ) {
+				$attributes .= ' ' . esc_attr( $attribute_key ) . '="' . esc_attr( $attribute_value ) . '"';
+			}
+		} else {
+			$attributes = ' '.$field['attributes'];
+		}
+	}
+
 	function render_field( $field ) {
 		$classes = array();
 		$hidden_field = '';
+		$field_el = '';
 		$is_custom_color = isset( $field['custom_color'] ) && $field['custom_color'];
 		$reset_button_html = '<span class="et-pb-reset-setting"></span>';
 		$need_mobile_options = isset( $field['mobile_options'] ) && $field['mobile_options'] ? true : false;
+		$only_options = isset( $field['only_options'] ) ? $field['only_options'] : false;
 
 		if ( $need_mobile_options ) {
 			$mobile_settings_tabs = et_pb_generate_mobile_options_tabs();
 		}
 
-		if ( 'select' !== $field['type'] ) {
+		if ( 0 !== strpos( $field['type'], 'select' ) ) {
 			$classes = array( 'regular-text' );
 		}
 
@@ -1871,23 +1886,19 @@ class ET_Builder_Element {
 			$default = '' === $default ? '||||' : $default;
 		}
 
+		$field_value = esc_attr( $field_name ) . '.replace("%91", "[").replace("%93", "]")';
+
 		$value_html = ' value="<%%- typeof( %1$s ) !== \'undefined\' ?  %2$s : \'%3$s\' %%>" ';
 		$value = sprintf(
 			$value_html,
 			esc_attr( $field_name ),
-			esc_attr( $field_name ),
+			$field_value,
 			$default
 		);
 
 		$attributes = '';
 		if ( ! empty( $field['attributes'] ) ) {
-			if ( is_array( $field['attributes'] )  ) {
-				foreach( $field['attributes'] as $attribute_key => $attribute_value ) {
-					$attributes .= ' ' . esc_attr( $attribute_key ) . '="' . esc_attr( $attribute_value ) . '"';
-				}
-			} else {
-				$attributes = ' '.$field['attributes'];
-			}
+			$this->process_html_attributes( $field, $attributes );
 		}
 
 		if ( ! empty( $field['affects'] ) ) {
@@ -1899,7 +1910,7 @@ class ET_Builder_Element {
 			$field['class'] .= ' et-pb-font-select';
 		}
 
-		if ( in_array( $field['type'], array( 'font', 'hidden', 'multiple_checkboxes' ) ) ) {
+		if ( in_array( $field['type'], array( 'font', 'hidden', 'multiple_checkboxes', 'select_with_option_groups' ) ) && ! $only_options ) {
 			$hidden_field = sprintf(
 				'<input type="hidden" name="%1$s" id="%2$s" class="et-pb-main-setting %3$s" data-default="%4$s" %5$s %6$s/>',
 				esc_attr( $field['name'] ),
@@ -1909,6 +1920,13 @@ class ET_Builder_Element {
 				$value,
 				$attributes
 			);
+
+			if ( 'select_with_option_groups' === $field['type'] ) {
+				// Since we are using a hidden field to manage the value, we need to clear the data-affects attribute so that
+				// it doesn't appear on both the `$field` AND the hidden field. This should probably be done for all of these
+				// field types but don't want to risk breaking anything :-/
+				$attributes = preg_replace( '/data-affects="[\w\s-,]*"/', 'data-affects=""', $attributes );
+			}
 		}
 
 		foreach ( $this->get_validation_attr_rules() as $rule ) {
@@ -1918,9 +1936,13 @@ class ET_Builder_Element {
 			}
 		}
 
+		if ( isset( $field['before'] ) && ! $only_options ) {
+			$field_el .= $this->render_field_before_after_element( $field['before'] );
+		}
+
 		switch( $field['type'] ) {
 			case 'warning':
-				$field_el = sprintf(
+				$field_el .= sprintf(
 					'<div class="et-pb-option-warning" data-name="%2$s" data-display_if="%3$s">%1$s</div>',
 					html_entity_decode( esc_html( $field['message'] ) ),
 					esc_attr( $field['name'] ),
@@ -1938,7 +1960,7 @@ class ET_Builder_Element {
 					$main_content_property_name = "data.{$main_content_property_name}";
 				}
 
-				$field_el = sprintf(
+				$field_el .= sprintf(
 					'<div id="%1$s"><%%= typeof( %2$s ) !== \'undefined\' ? %2$s : \'\' %%></div>',
 					esc_attr( $main_content_field_name ),
 					esc_html( $main_content_property_name )
@@ -1950,13 +1972,14 @@ class ET_Builder_Element {
 				$field_custom_value = esc_html( $field_name );
 				if ( 'custom_css' === $field['type'] ) {
 					$field_custom_value .= '.replace( /\|\|/g, "\n" ).replace( /%22/g, "&quot;" ).replace( /%92/g, "\\\" )';
+					$field_custom_value .= '.replace( /%91/g, "&#91;" ).replace( /%93/g, "&#93;" )';
 				}
 
 				if ( 'et_pb_raw_content' === $field_name ) {
 					$field_custom_value = sprintf( '_.unescape( %1$s )', $field_custom_value );
 				}
 
-				$field_el = sprintf(
+				$field_el .= sprintf(
 					'<textarea class="et-pb-main-setting large-text code%1$s" rows="4" cols="50" id="%2$s"><%%= typeof( %3$s ) !== \'undefined\' ? %4$s : \'\' %%></textarea>',
 					esc_attr( $field['class'] ),
 					esc_attr( $field['id'] ),
@@ -1967,6 +1990,7 @@ class ET_Builder_Element {
 			case 'select':
 			case 'yes_no_button':
 			case 'font':
+			case 'select_with_option_groups':
 				if ( 'font' === $field['type'] ) {
 					$field['id']    .= '_select';
 					$field_name     .= '_select';
@@ -1980,7 +2004,13 @@ class ET_Builder_Element {
 					$button_options = isset( $field['button_options'] ) ? $field['button_options'] : array();
 				}
 
-				$field_el = $this->render_select( $field_name, $field['options'], $field['id'], $field['class'], $attributes, $field['type'], $button_options, $default );
+				$select = $this->render_select( $field_name, $field['options'], $field['id'], $field['class'], $attributes, $field['type'], $button_options, $default, $only_options );
+
+				if ( $only_options ) {
+					$field_el = $select;
+				} else {
+					$field_el .= $select;
+				}
 
 				if ( 'font' === $field['type'] ) {
 					$font_style_button_html = sprintf(
@@ -1997,6 +2027,11 @@ class ET_Builder_Element {
 
 					$field_el .= $hidden_field;
 				}
+
+				if ( 'select_with_option_groups' === $field['type'] ) {
+					$field_el .= $hidden_field;
+				}
+
 				break;
 			case 'color':
 			case 'color-alpha':
@@ -2052,7 +2087,7 @@ class ET_Builder_Element {
 				$field['classes'] = ! empty( $field['classes'] ) ? ' ' . $field['classes'] : '';
 				$field_additional_button = ! empty( $field['additional_button'] ) ? "\n\t\t\t\t\t" . $field['additional_button'] : '';
 
-				$field_el = sprintf(
+				$field_el .= sprintf(
 					'<input id="%1$s" type="text" class="et-pb-main-setting regular-text et-pb-upload-field%8$s" value="<%%- typeof( %2$s ) !== \'undefined\' ? %2$s : \'\' %%>" />
 					<input type="button" class="button button-upload et-pb-upload-button" value="%3$s" data-choose="%4$s" data-update="%5$s" data-type="%6$s" />%7$s',
 					esc_attr( $field['id'] ),
@@ -2066,7 +2101,7 @@ class ET_Builder_Element {
 				);
 				break;
 			case 'checkbox':
-				$field_el = sprintf(
+				$field_el .= sprintf(
 					'<input type="checkbox" name="%1$s" id="%2$s" class="et-pb-main-setting" value="on" <%%- typeof( %1$s ) !==  \'undefined\' && %1$s == \'on\' ? checked="checked" : "" %%>>',
 					esc_attr( $field['name'] ),
 					esc_attr( $field['id'] )
@@ -2101,10 +2136,10 @@ class ET_Builder_Element {
 					);
 				}
 
-				$field_el = $checkboxes_set . $hidden_field . '</div>';
+				$field_el .= $checkboxes_set . $hidden_field . '</div>';
 				break;
 			case 'hidden':
-				$field_el = $hidden_field;
+				$field_el .= $hidden_field;
 				break;
 			case 'custom_margin':
 			case 'custom_padding':
@@ -2155,7 +2190,7 @@ class ET_Builder_Element {
 					'class' => esc_attr( $custom_margin_class ),
 				);
 
-				$field_el = sprintf(
+				$field_el .= sprintf(
 					'<div class="et_custom_margin_padding">
 						%6$s
 						%7$s
@@ -2232,7 +2267,7 @@ class ET_Builder_Element {
 
 				$type = in_array( $field['type'], array( 'text', 'number' ) ) ? $field['type'] : 'text';
 
-				$field_el = sprintf(
+				$field_el .= sprintf(
 					'<input id="%1$s" type="%11$s" class="%2$s%5$s%9$s"%6$s%3$s%8$s%10$s %4$s/>%7$s',
 					esc_attr( $field['id'] ),
 					esc_attr( $field['class'] ),
@@ -2370,39 +2405,88 @@ class ET_Builder_Element {
 			$field_el .= $reset_button_html;
 		}
 
+		if ( isset( $field['after'] ) && ! $only_options ) {
+			$field_el .= $this->render_field_before_after_element( $field['after'] );
+		}
+
 		return "\t" . $field_el;
 	}
 
-	function render_select( $name, $options, $id = '', $class = '', $attributes = '', $field_type = '', $button_options = array(), $default = '' ) {
+	public function render_field_before_after_element( $elements ) {
+		$field_el = '';
+		$elements = is_array( $elements ) ? $elements : array( $elements );
+
+		foreach ( $elements as $element ) {
+			$attributes = '';
+
+			if ( ! empty( $element['attributes'] ) ) {
+				$this->process_html_attributes( $element, $attributes );
+			}
+
+			switch ( $element['type'] ) {
+				case 'button':
+					$class     = isset( $element['class'] ) ? esc_attr( $element['class'] ) : '';
+					$text      = isset( $element['text'] ) ? et_esc_previously( $element['text'] ) : '';
+					$field_el .= sprintf( '<button class="button %1$s"%2$s>%3$s</button>', $class, $attributes, $text );
+
+					break;
+			}
+		}
+
+		return $field_el;
+	}
+
+	public function render_select_options( $select_name, $options, $default ) {
+		$options_output = '';
+
+		foreach ( (array) $options as $option_value => $option_label ) {
+			$data = '';
+			if ( is_array( $option_label ) ) {
+				if ( isset( $option_label['data'] ) ) {
+					$data_key_name = key( $option_label['data'] );
+					$data = sprintf(
+						' data-%1$s="%2$s"',
+						esc_attr( $data_key_name ),
+						esc_attr( $option_label['data'][ $data_key_name ] )
+					);
+				}
+				$option_label = $option_label['value'];
+			}
+			$selected_attr = '<%- ( typeof( ' . esc_attr( $select_name ) . ' ) !== \'undefined\' && \'' . esc_attr( $option_value ) . '\' === ' . esc_attr( $select_name ) . ' ) || ( typeof( ' . esc_attr( $select_name ) . ' ) === \'undefined\' && \'' . $default . '\' !== \'\' && \'' . esc_attr( $option_value ) . '\' === \'' . $default .'\' ) ?  \' selected="selected"\' : \'\' %>';
+			$options_output .= sprintf(
+				'%4$s<option%5$s value="%1$s"%2$s>%3$s</option>',
+				esc_attr( $option_value ),
+				$selected_attr,
+				esc_html( $option_label ),
+				"\n\t\t\t\t\t\t",
+				( '' !== $data ? $data : '' )
+			);
+		}
+
+		return $options_output;
+	}
+
+	function render_select( $name, $options, $id = '', $class = '', $attributes = '', $field_type = '', $button_options = array(), $default = '', $only_options = false ) {
 		$options_output = '';
 
 		if ( 'font' === $field_type ) {
 			$options_output = '<%= window.et_builder.fonts_template() %>';
-		} else {
-			foreach ( $options as $option_value => $option_label ) {
-				$data = '';
-				if ( is_array( $option_label ) ) {
-					if ( isset( $option_label['data'] ) ) {
-						$data_key_name = key( $option_label['data'] );
-						$data = sprintf(
-							' data-%1$s="%2$s"',
-							esc_html( $data_key_name ),
-							esc_attr( $option_label['data'][ $data_key_name ] )
-						);
-					}
-					$option_label = $option_label['value'];
-				}
-				$selected_attr = '<%- ( typeof( ' . esc_attr( $name ) . ' ) !== \'undefined\' && \'' . esc_attr( $option_value ) . '\' === ' . esc_attr( $name ) . ' ) || ( typeof( ' . esc_attr( $name ) . ' ) === \'undefined\' && \'' . $default . '\' !== \'\' && \'' . esc_attr( $option_value ) . '\' === \'' . $default .'\' ) ?  \' selected="selected"\' : \'\' %>';
-				$options_output .= sprintf(
-					'%4$s<option%5$s value="%1$s"%2$s>%3$s</option>',
-					esc_attr( $option_value ),
-					$selected_attr,
-					esc_html( $option_label ),
-					"\n\t\t\t\t\t\t",
-					( '' !== $data ? $data : '' )
-				);
+
+		} else if ( 'select_with_option_groups' === $field_type ) {
+			foreach ( $options as $option_group_name => $option_group ) {
+				$option_group_name = esc_attr( $option_group_name );
+				$options_output   .= '0' !== $option_group_name ? "<optgroup label='{$option_group_name}'>" : '';
+				$options_output   .= $this->render_select_options( $name, $option_group, $default );
+				$options_output   .= '0' !== $option_group_name ? '</optgroup>' : '';
 			}
-			$class = rtrim( 'et-pb-main-setting ' . $class );
+
+			$class = rtrim( $class );
+
+			$name = $id = '';
+
+		} else {
+			$options_output .= $this->render_select_options( $name, $options, $default );
+			$class           = rtrim( 'et-pb-main-setting ' . $class );
 		}
 
 		$output = sprintf(
@@ -2429,7 +2513,7 @@ class ET_Builder_Element {
 			'yes_no_button' === $field_type ? '</div>' : '',
 			( 'et_pb_transparent_background' === $name ? '<%- typeof( ' . esc_html( $name ) . ' ) === \'undefined\' ?  \' data-default=default\' : \'\' %>' : '' )
 		);
-		return $output;
+		return $only_options ? $options_output : $output;
 	}
 
 	function get_main_tabs() {
@@ -2805,9 +2889,9 @@ class ET_Builder_Element {
 			$template_output .= sprintf(
 				'%6$s<script type="text/template" id="et-builder-advanced-setting-%1$s-title">
 					<%% if ( typeof( %2$s ) !== \'undefined\' && typeof( %2$s ) === \'string\' && %2$s !== \'\' ) { %%>
-						<%%- %2$s %%>
+						<%%- %2$s.replace( /%%91/g, "[" ).replace( /%%93/g, "]" ) %%>
 					<%% } else if ( typeof( %3$s ) !== \'undefined\' && typeof( %3$s ) === \'string\' && %3$s !== \'\' ) { %%>
-						<%%- %3$s %%>
+						<%%- %3$s.replace( /%%91/g, "[" ).replace( /%%93/g, "]" ) %%>
 					<%% } else { %%>
 						<%%- \'%4$s\' %%>
 					<%% } %%>

@@ -1174,6 +1174,19 @@ input.checkbox.yes_no_button {
 	content: '4';
 }
 
+#epanel p.postinfo-rating_stars img {
+	vertical-align: middle;
+	width: 91px;
+	height: 19px;
+	margin-right: 5px;
+	margin-left: 0px !important;
+}
+
+#epanel p.postinfo-rating_stars .mark:before {
+	content: "\E033";
+	font: 16px 'ETModules';
+}
+
 /**
  * Colorpicker
  */

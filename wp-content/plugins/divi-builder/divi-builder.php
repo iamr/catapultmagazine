@@ -3,7 +3,7 @@
  * Plugin Name: Divi Builder
  * Plugin URI: http://elegantthemes.com
  * Description: A drag and drop page builder for any WordPress theme.
- * Version: 2.0.3
+ * Version: 2.0.5
  * Author: Elegant Themes
  * Author URI: http://elegantthemes.com
  * License: GPLv2 or later
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'ET_BUILDER_PLUGIN_DIR', trailingslashit( plugin_dir_path( __FILE__ ) ) );
 define( 'ET_BUILDER_PLUGIN_URI', plugins_url('', __FILE__) );
-define( 'ET_BUILDER_PLUGIN_VERSION', '1.3.10' );
+define( 'ET_BUILDER_PLUGIN_VERSION', '2.0.5' );
 
 if ( ! class_exists( 'ET_Dashboard_v2' ) ) {
 	require_once( ET_BUILDER_PLUGIN_DIR . 'dashboard/dashboard.php' );
@@ -51,15 +51,11 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 
 		add_action( 'wp_ajax_et_builder_save_settings', array( $this, 'builder_save_settings' ) );
 
-		add_action( 'wp_ajax_et_builder_authorize_aweber', array( $this, 'authorize_aweber' ) );
-
 		add_action( 'wp_ajax_et_builder_refresh_lists', array( $this, 'refresh_lists' ) );
 
 		add_action( 'wp_ajax_et_builder_save_updates_settings', array( $this, 'save_updates_settings' ) );
 
 		add_action( 'wp_ajax_et_builder_save_google_api_settings', array( $this, 'save_google_api_settings' ) );
-
-		add_filter( 'et_pb_builder_authorization_verdict', array( $this, 'is_aweber_authorized' ) );
 
 		add_filter( 'body_class', array( $this, 'add_body_class' ) );
 
@@ -201,7 +197,6 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 		define( 'ET_BUILDER_DIR', ET_BUILDER_PLUGIN_DIR . 'includes/builder/' );
 		define( 'ET_BUILDER_URI', trailingslashit( plugins_url( '', __FILE__ ) ) . 'includes/builder' );
 		define( 'ET_BUILDER_LAYOUT_POST_TYPE', 'et_pb_layout' );
-		define( 'ET_CORE_VERSION', $this->plugin_version );
 
 		load_theme_textdomain( 'et_builder', ET_BUILDER_DIR . 'languages' );
 
@@ -261,120 +256,8 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 			'ajaxurl'                    => admin_url( 'admin-ajax.php', $this->protocol ),
 			'authorize_text'             => esc_html__( 'Authorize', 'et_builder_plugin' ),
 			'reauthorize_text'           => esc_html__( 'Re-Authorize', 'et_builder_plugin' ),
-			'authorization_successflull' => esc_html__( 'AWeber successfully authorized', 'et_builder_plugin' ),
 			'save_settings'              => wp_create_nonce( 'save_settings' ),
 		) );
-	}
-
-	function authorize_aweber() {
-		if ( ! wp_verify_nonce( $_POST['et_builder_nonce'] , 'et_builder_nonce' ) ) {
-			die( -1 );
-		}
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			die( -1 );
-		}
-
-		$api_key = ! empty( $_POST['et_builder_api_key'] ) ? sanitize_text_field( $_POST['et_builder_api_key'] ) : '';
-
-		$error_message = '' !== $api_key ? $this->aweber_authorization( $api_key ) : esc_html__( 'please paste valid authorization code', 'et_builder_plugin' );
-
-		$result = 'success' == $error_message ?
-			$error_message
-			: esc_html__( 'Authorization failed: ', 'et_builder_plugin' ) . $error_message;
-
-		die( $result );
-	}
-
-	function refresh_lists() {
-		if ( ! wp_verify_nonce( $_POST['et_builder_nonce'] , 'et_builder_nonce' ) ) {
-			die( -1 );
-		}
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			die( -1 );
-		}
-
-		$service = ! empty( $_POST['et_builder_mail_service'] ) ? sanitize_text_field( $_POST['et_builder_mail_service'] ) : '';
-		self::process_and_update_options( $_POST['et_builder_form_options'] );
-
-		switch ( $service ) {
-			case 'mailchimp':
-				$result = et_pb_get_mailchimp_lists( 'on' );
-				break;
-			case 'aweber':
-				$result = et_pb_get_aweber_lists( 'on' );
-				break;
-		}
-
-		if ( false === $result ) {
-			$result = sprintf( esc_html__( 'Error: Please make sure %1$s', 'et_builder_plugin' ), 'mailchimp' === $service ? esc_html__( 'MailChimp API key is correct', 'et_builder_plugin' ) : esc_html__( 'AWeber is authorized', 'et_builder_plugin' ) );
-		} else {
-			$result = esc_html__( 'Lists have been successfully regenerated', 'et_builder_plugin' );
-		}
-
-		die( $result );
-	}
-
-	/**
-	 * Retrieves the tokens from AWeber
-	 * @return string
-	 */
-	function aweber_authorization( $api_key ) {
-
-		if ( ! class_exists( 'AWeberAPI' ) ) {
-			require_once( ET_BUILDER_DIR . 'subscription/aweber/aweber_api.php' );
-		}
-
-		try {
-			$auth = AWeberAPI::getDataFromAweberID( $api_key );
-
-			if ( ! ( is_array( $auth ) && 4 === count( $auth ) ) ) {
-				$error_message = esc_html__( 'Authorization code is invalid. Try regenerating it and paste in the new code.', 'et_builder_plugin' );
-			} else {
-				$error_message = 'success';
-				list( $consumer_key, $consumer_secret, $access_key, $access_secret ) = $auth;
-
-				self::update_option( array(
-					'newsletter_main_aweber_key' => sanitize_text_field( $api_key ),
-					'aweber_consumer_key'        => sanitize_text_field( $consumer_key ),
-					'aweber_consumer_secret'     => sanitize_text_field( $consumer_secret ),
-					'aweber_access_key'          => sanitize_text_field( $access_key ),
-					'aweber_access_secret'       => sanitize_text_field( $access_secret ),
-				) );
-			}
-		} catch ( AWeberAPIException $exc ) {
-			$error_message = sprintf(
-				'<p>%4$s</p>
-				<ul>
-					<li>%5$s: %1$s</li>
-					<li>%6$s: %2$s</li>
-					<li>%7$s: %3$s</li>
-				</ul>',
-				esc_html( $exc->type ),
-				esc_html( $exc->message ),
-				esc_html( $exc->documentation_url ),
-				esc_html__( 'AWeberAPIException.', 'et_builder_plugin' ),
-				esc_html__( 'Type', 'et_builder_plugin' ),
-				esc_html__( 'Message', 'et_builder_plugin' ),
-				esc_html__( 'Documentation', 'et_builder_plugin' )
-			);
-		}
-
-		return $error_message;
-	}
-
-	/**
-	 * Checks whether Aweber is authorized or not.
-	 * Used to determine whether to display "Authorize" or "Re-Authorize" text on butoton
-	 */
-	function is_aweber_authorized( $network ) {
-		$builder_settings = $this->get_builder_options();
-
-		// Consider aweber authorized if all 4 fields are not empty
-		if ( ! empty( $builder_settings ) && ! empty( $builder_settings['aweber_consumer_key'] ) && ! empty( $builder_settings['aweber_consumer_secret'] ) && ! empty( $builder_settings['aweber_access_key'] ) && ! empty( $builder_settings['aweber_access_secret'] ) ) {
-			return true;
-		}
 	}
 
 	function save_updates_settings() {

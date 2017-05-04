@@ -2,7 +2,7 @@
 
 if ( ! defined( 'ET_BUILDER_PRODUCT_VERSION' ) ) {
 	// Note, when this is updated, you must also update corresponding version in builder.js: `window.et_builder_version`
-	define( 'ET_BUILDER_PRODUCT_VERSION', '3.0.40' );
+	define( 'ET_BUILDER_PRODUCT_VERSION', '3.0.42' );
 }
 
 if ( ! defined( 'ET_BUILDER_VERSION' ) ) {
@@ -745,6 +745,8 @@ function et_fb_process_to_shortcode( $object, $options = array(), $library_item_
 				$attributes .= ' ' . esc_attr( $attribute ) . '="' . et_esc_previously( $value ) . '"';
 			}
 		}
+
+		$attributes = str_replace( array( '[', ']' ), array( '%91', '%93' ), $attributes );
 
 		// prefix sections with a fb_built attr flag
 		if ( 'et_pb_section' == $type ) {
@@ -2246,14 +2248,16 @@ function et_pb_add_builder_page_js_css(){
 		$preview_url = str_replace( 'http://', 'https://', $preview_url );
 	}
 
-	// force update cache if need to regenerate MailChimp or AWeber Lists or if et_pb_clear_templates_cache option is set to on
-	if ( 'on' === et_get_option( 'divi_regenerate_mailchimp_lists', 'false' ) || 'on' === et_get_option( 'divi_regenerate_aweber_lists', 'false' ) || 'on' === et_get_option( 'et_pb_clear_templates_cache', 'off' ) ) {
-		$force_cache_value = true;
-	} else {
-		$force_cache_value = false;
-	}
+	// force update cache if et_pb_clear_templates_cache option is set to on
+	$force_cache_value  = et_get_option( 'et_pb_clear_templates_cache', '' );
+	$force_cache_update = '' !== $force_cache_value ? $force_cache_value : ET_BUILDER_FORCE_CACHE_PURGE;
 
-	$force_cache_update = false !== $force_cache_value ? $force_cache_value : ET_BUILDER_FORCE_CACHE_PURGE;
+	/**
+	 * Whether or not the backend builder should clear its Backbone template cache.
+	 *
+	 * @param bool $force_cache_update
+	 */
+	$force_cache_update = apply_filters( 'et_pb_clear_template_cache', $force_cache_update );
 
 	// delete et_pb_clear_templates_cache option it's not needed anymore
 	et_delete_option( 'et_pb_clear_templates_cache' );
@@ -2347,7 +2351,7 @@ function et_pb_add_builder_page_js_css(){
 		'page_section_bg_color'                    => get_post_meta( get_the_ID(), '_et_pb_section_background_color', true ),
 		'page_gutter_width'                        => '' !== ( $saved_gutter_width = get_post_meta( get_the_ID(), '_et_pb_gutter_width', true ) ) ? $saved_gutter_width : et_get_option( 'gutter_width', 3 ),
 		'product_version'                          => ET_BUILDER_PRODUCT_VERSION,
-		'force_cache_purge'                        => (int) $force_cache_update,
+		'force_cache_purge'                        => $force_cache_update ? 'true' : 'false',
 		'memory_limit_increased'                   => esc_html__( 'Your memory limit has been increased', 'et_builder' ),
 		'memory_limit_not_increased'               => esc_html__( "Your memory limit can't be changed automatically", 'et_builder' ),
 		'google_api_key'                           => et_pb_get_google_api_key(),
@@ -2355,6 +2359,9 @@ function et_pb_add_builder_page_js_css(){
 		'et_pb_google_maps_script_notice'          => et_pb_enqueue_google_maps_script(),
 		'select_text'                              => esc_html__( 'Select', 'et_builder' ),
 		'et_fb_autosave_nonce'                     => wp_create_nonce( 'et_fb_autosave_nonce' ),
+		'et_builder_email_fetch_lists_nonce'       => wp_create_nonce( 'et_builder_email_fetch_lists_nonce' ),
+		'et_builder_email_add_account_nonce'       => wp_create_nonce( 'et_builder_email_add_account_nonce' ),
+		'et_builder_email_remove_account_nonce'    => wp_create_nonce( 'et_builder_email_remove_account_nonce' ),
 	), et_pb_history_localization() ) ) );
 
 	wp_localize_script( 'et_pb_admin_js', 'et_pb_ab_js_options', apply_filters( 'et_pb_ab_js_options', array(
@@ -2366,7 +2373,7 @@ function et_pb_add_builder_page_js_css(){
 		'analysis_formula'           => et_pb_ab_get_analysis_formulas(),
 		'have_conversions'           => et_pb_ab_get_modules_have_conversions(),
 		'sales_title'                => esc_html__( 'Sales', 'et_builder' ),
-		'force_cache_purge'          => (int) $force_cache_update,
+		'force_cache_purge'          => $force_cache_update,
 		'total_title'                => esc_html__( 'Total', 'et_builder' ),
 
 		// Saved data
@@ -3440,7 +3447,7 @@ function et_pb_pagebuilder_meta_box() {
 			</div>
 			%2$s
 			<div class="et-pb-locked-overlay et-pb-locked-overlay-section"></div>
-			<span class="et-pb-section-title"><%%= admin_label.replace( /%%22/g, "&quot;" ) %%></span>
+			<span class="et-pb-section-title"><%%= admin_label.replace( /%%22/g, "&quot;" ).replace( /%%91/g, "&#91;" ).replace( /%%93/g, "&#93;" ) %%></span>
 		</script>',
 		apply_filters( 'et_builder_section_settings_controls', $settings_controls ),
 		et_pb_is_allowed( 'add_module' ) ? apply_filters( 'et_builder_section_add_controls', $settings_add_controls ) : '',
@@ -3556,7 +3563,7 @@ function et_pb_pagebuilder_meta_box() {
 			</div>
 			%5$s
 			<div class="et-pb-locked-overlay et-pb-locked-overlay-row"></div>
-			<span class="et-pb-row-title"><%%= admin_label.replace( /%%22/g, "&quot;" ) %%></span>
+			<span class="et-pb-row-title"><%%= admin_label.replace( /%%22/g, "&quot;" ).replace( /%%91/g, "&#91;" ).replace( /%%93/g, "&#93;" ) %%></span>
 		</script>',
 		apply_filters( 'et_builder_row_settings_controls', $settings ),
 		$row_class,
@@ -3616,7 +3623,7 @@ function et_pb_pagebuilder_meta_box() {
 			%2$s
 			%3$s
 			%4$s
-			<span class="et-pb-module-title"><%%= admin_label.replace( /%%22/g, "&quot;" ) %%></span>
+			<span class="et-pb-module-title"><%%= admin_label.replace( /%%22/g, "&quot;" ).replace( /%%91/g, "&#91;" ).replace( /%%93/g, "&#93;" ) %%></span>
 		</script>',
 		et_pb_is_allowed( 'edit_module' ) && ( et_pb_is_allowed( 'general_settings' ) || et_pb_is_allowed( 'advanced_settings' ) || et_pb_is_allowed( 'custom_css_settings' ) ) ? $settings_button : '',
 		et_pb_is_allowed( 'add_module' ) ? $clone_button : '',

@@ -6766,10 +6766,18 @@ class ET_Builder_Module_Audio extends ET_Builder_Module {
 new ET_Builder_Module_Audio;
 
 class ET_Builder_Module_Signup extends ET_Builder_Module {
+
+	public static $enabled_providers = array(
+		'aweber'     => 'Aweber',
+		'mailchimp'  => 'MailChimp',
+	);
+
 	function init() {
 		$this->name       = esc_html__( 'Email Optin', 'et_builder' );
 		$this->slug       = 'et_pb_signup';
 		$this->fb_support = true;
+
+		self::$enabled_providers = apply_filters( 'et_builder_module_signup_enabled_providers', self::$enabled_providers );
 
 		$this->whitelisted_fields = array(
 			'provider',
@@ -6858,24 +6866,59 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 		);
 	}
 
-	function get_fields() {
-		$et_pb_mailchimp_lists_options = array( 'none' => esc_html__( 'Select the list', 'et_builder' ) );
-		$et_pb_aweber_lists_options = $et_pb_mailchimp_lists_options;
+	function get_fields( $force = '' ) {
+		$lists  = self::get_lists( $force );
+		$manage = esc_html__( 'Manage', 'et_builder' );
 
-		$et_pb_mailchimp_lists = et_pb_get_mailchimp_lists();
+		$action_buttons = array(
+			array(
+				'type'  => 'button',
+				'class' => 'et_pb_email_add_account',
+				'text'  => esc_html__( 'Add', 'et_builder' ),
+			),
+			array(
+				'type'       => 'button',
+				'class'      => 'et_pb_email_remove_account',
+				'text'       => esc_html__( 'Remove', 'et_builder' ),
+				'attributes' => array(
+					'data-confirm_text' => esc_attr__( 'Confirm', 'et_builder' ),
+				),
+			),
+			array(
+				'type'       => 'button',
+				'class'      => 'et_pb_email_force_fetch_lists',
+				'text'       => esc_html__( 'Fetch Lists', 'et_builder' ),
+				'attributes' => array(
+					'data-cancel_text' => esc_attr__( 'Cancel', 'et_builder' ),
+				),
+			),
+		);
 
-		if ( $et_pb_mailchimp_lists ) {
-			foreach ( $et_pb_mailchimp_lists as $et_pb_mailchimp_list_key => $et_pb_mailchimp_list_name ) {
-				$et_pb_mailchimp_lists_options[ $et_pb_mailchimp_list_key ] = $et_pb_mailchimp_list_name;
-			}
-		}
+		$submit_and_cancel_buttons = array(
+			array(
+				'type'  => 'button',
+				'class' => 'et_pb_email_cancel',
+				'text'  => esc_html__( 'Cancel', 'et_builder' ),
+			),
+			array(
+				'type'  => 'button',
+				'class' => 'et_pb_email_submit',
+				'text'  => esc_html__( 'Submit', 'et_builder' ),
+			),
+		);
 
-		$et_pb_aweber_lists = et_pb_get_aweber_lists();
+		$list_fields_attributes = array(
+			'data-confirm_remove_text'     => esc_attr__( 'The following account will be removed:', 'et_builder' ),
+			'data-adding_new_account_text' => esc_attr__( 'Use the fields below to add a new account.', 'et_builder' ),
+		);
 
-		if ( $et_pb_aweber_lists ) {
-			foreach ( $et_pb_aweber_lists as $et_pb_aweber_list_key => $et_pb_aweber_list_name ) {
-				$et_pb_aweber_lists_options[ $et_pb_aweber_list_key ] = $et_pb_aweber_list_name;
-			}
+		foreach ( $lists as &$accounts_list ) {
+			array_unshift( $accounts_list, array( 'none' => esc_html__( 'Select a list', 'et_builder' ) ) );
+			$accounts_list[ $manage ] = array(
+				'add_new_account' => '',
+				'remove_account'  => '',
+				'fetch_lists'     => esc_html__( 'Fetching lists...', 'et_builder' ),
+			);
 		}
 
 		$fields = array(
@@ -6884,16 +6927,16 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 				'type'            => 'select',
 				'option_category' => 'basic_option',
 				'options'         => array(
-					'mailchimp'  => esc_html__( 'MailChimp', 'et_builder' ),
-					'feedburner' => esc_html__( 'FeedBurner', 'et_builder' ),
-					'aweber'     => esc_html__( 'Aweber', 'et_builder' ),
+					'mailchimp'  => esc_html( 'MailChimp' ),
+					'feedburner' => esc_html( 'FeedBurner' ),
+					'aweber'     => esc_html( 'Aweber' ),
 				),
 				'affects' => array(
 					'feedburner_uri',
 					'mailchimp_list',
 					'aweber_list',
 				),
-				'description'       => esc_html__( 'Here you can choose a service provider.', 'et_builder' ),
+				'description'       => esc_html__( 'Choose a service provider.', 'et_builder' ),
 			),
 			'feedburner_uri' => array(
 				'label'           => esc_html__( 'Feed Title', 'et_builder' ),
@@ -6903,28 +6946,68 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 				'description'     => et_get_safe_localization( sprintf( __( 'Enter <a href="%1$s" target="_blank">Feed Title</a>.', 'et_builder' ), esc_url( 'http://feedburner.google.com/fb/a/myfeeds' ) ) ),
 			),
 			'mailchimp_list' => array(
-				'label'           => esc_html__( 'MailChimp lists', 'et_builder' ),
-				'type'            => 'select',
+				'label'           => esc_html__( 'MailChimp List', 'et_builder' ),
+				'type'            => 'select_with_option_groups',
 				'option_category' => 'basic_option',
-				'options'         => $et_pb_mailchimp_lists_options,
-				'description'     => sprintf(
-					esc_html__( 'Here you can choose MailChimp list to add customers to. If you don\'t see any lists here, you need to make sure MailChimp API key is set in %1$s and you have at least one list on a MailChimp account. If you added new list, but it doesn\'t appear here, activate \'Regenerate MailChimp Lists\' option in %1$s.%2$s', 'et_builder' ),
-						et_is_builder_plugin_active() ? esc_html__( 'Divi Plugin Options', 'et_builder' ) : esc_html__( 'ePanel', 'et_builder' ),
-						! et_is_builder_plugin_active() ? esc_html__( 'Don\'t forget to disable it once the list has been regenerated.', 'et_builder' ) : ''
-					),
+				'options'         => $lists['mailchimp'],
+				'description'     => esc_html__( 'Choose a MailChimp list. If you don\'t see any lists, click "Add" to add a MailChimp account.' ),
 				'depends_show_if' => 'mailchimp',
+				'after'           => $action_buttons,
+				'attributes'      => $list_fields_attributes,
+				'default'         => '0|none',
+				'affects' => array(
+					'mailchimp_name',
+					'mailchimp_key',
+				),
+			),
+			'mailchimp_name'  => array(
+				'label'           => esc_html__( 'Account Name', 'et_builder' ),
+				'type'            => 'text',
+				'option_category' => 'basic_option',
+				'description'     => esc_html__( 'A name to associate with the account when displayed in the Mailchimp Lists select field.', 'et_builder' ),
+				'depends_show_if' => $manage . '|add_new_account',
+				'class'           => 'et_pb_account_name',
+			),
+			'mailchimp_key'  => array(
+				'label'           => esc_html__( 'API Key', 'et_builder' ),
+				'type'            => 'text',
+				'option_category' => 'basic_option',
+				'description'     => et_get_safe_localization( sprintf( __( 'Enter your MailChimp API key. You can create an api key %1$s here %2$s', 'et_builder' ), '<a target="_blank" href="https://us3.admin.mailchimp.com/account/api">', '</a>.' ) ),
+				'depends_show_if' => $manage . '|add_new_account',
+				'class'           => 'et_pb_api_key',
+				'after'           => $submit_and_cancel_buttons,
 			),
 			'aweber_list' => array(
-				'label'           => esc_html__( 'Aweber lists', 'et_builder' ),
-				'type'            => 'select',
+				'label'           => esc_html__( 'Aweber List', 'et_builder' ),
+				'type'            => 'select_with_option_groups',
 				'option_category' => 'basic_option',
-				'options'         => $et_pb_aweber_lists_options,
-				'description'     => sprintf(
-					esc_html__( 'Here you can choose Aweber list to add customers to. If you don\'t see any lists here, you need to make sure Aweber is set up properly in %1$s and you have at least one list on a Aweber account. If you added new list, but it doesn\'t appear here, activate \'Regenerate Aweber Lists\' option in %1$s.%2$s', 'et_builder' ),
-						et_is_builder_plugin_active() ? esc_html__( 'Divi Plugin Options', 'et_builder' ) : esc_html__( 'ePanel', 'et_builder' ),
-						! et_is_builder_plugin_active() ? esc_html__( 'Don\'t forget to disable it once the list has been regenerated.', 'et_builder' ) : ''
-					),
+				'options'         => $lists['aweber'],
+				'description'     => esc_html__( 'Choose an AWeber list. If you don\'t see any lists, click "Add" to add an AWeber account.' ),
 				'depends_show_if' => 'aweber',
+				'after'           => $action_buttons,
+				'attributes'      => $list_fields_attributes,
+				'default'         => '0|none',
+				'affects' => array(
+					'aweber_name',
+					'aweber_key',
+				),
+			),
+			'aweber_name'  => array(
+				'label'           => esc_html__( 'Account Name', 'et_builder' ),
+				'type'            => 'text',
+				'option_category' => 'basic_option',
+				'description'     => esc_html__( 'A name to associate with the account when displayed in the Aweber Lists select field.', 'et_builder' ),
+				'depends_show_if' => $manage . '|add_new_account',
+				'class'           => 'et_pb_account_name',
+			),
+			'aweber_key'  => array(
+				'label'           => esc_html__( 'API Key', 'et_builder' ),
+				'type'            => 'text',
+				'option_category' => 'basic_option',
+				'description'     => et_get_safe_localization( sprintf( __( 'Paste the authorization code from the Aweber page that was just opened in a new tab here. You can generate a new authorization code %1$s here %2$s', 'et_builder' ), '<a target="_blank" href="https://auth.aweber.com/1.0/oauth/authorize_app/b17f3351">', '</a>.' ) ),
+				'depends_show_if' => $manage . '|add_new_account',
+				'class'           => 'et_pb_api_key',
+				'after'           => $submit_and_cancel_buttons,
 			),
 			'title' => array(
 				'label'           => esc_html__( 'Title', 'et_builder' ),
@@ -7059,6 +7142,73 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 		return $fields;
 	}
 
+	public static function get_lists( $force = '' ) {
+		static $lists = null;
+
+		if ( null !== $lists && empty( $force ) && ! empty( $lists ) ) {
+			return $lists;
+		}
+
+		et_builder_email_maybe_migrate_accounts();
+
+		$providers    = et_core_api_email_providers();
+		$all_accounts = $providers->accounts();
+		$lists        = array();
+		$provider     = null;
+
+		foreach( self::$enabled_providers as $provider_slug => $provider_name ) {
+			if ( empty( $all_accounts[ $provider_slug ] ) ) {
+				$lists[ $provider_slug ] = array();
+				continue;
+			}
+
+			foreach( $all_accounts[ $provider_slug ] as $account_name => $account_details ) {
+				if ( 'fetch' !== $force && empty( $account_details['lists'] ) ) {
+					continue;
+				}
+
+				$account_lists = empty( $account_details['lists'] ) ? array() : $account_details['lists'];
+
+				if ( 'fetch' === $force ) {
+					$provider      = $providers->get( $provider_name, $account_name, 'builder' );
+					$result        = $provider->fetch_subscriber_lists();
+					$account_lists = 'success' === $result ? $provider->data['lists'] : $account_lists;
+				}
+
+				foreach( $account_lists as $list_id => $list_details ) {
+					if ( ! empty( $list_details['name'] ) ) {
+						$lists[ $provider_slug ][ $account_name ][ $list_id ] = esc_html( $list_details['name'] );
+					}
+				}
+			}
+
+			if ( empty( $lists[ $provider_slug ] ) ) {
+				$lists[ $provider_slug ] = array();
+			}
+		}
+
+		return $lists;
+	}
+
+	public static function get_account_name_for_list_id( $provider_slug, $list_id ) {
+		$providers    = new ET_Core_API_Email_Providers();
+		$all_accounts = $providers->accounts();
+		$result       = '';
+
+		if ( ! isset( $all_accounts[ $provider_slug ] ) ) {
+			return $result;
+		}
+
+		foreach ( $all_accounts[ $provider_slug ] as $account_name => $account_details ) {
+			if ( ! empty( $account_details['lists'][ $list_id ] ) ) {
+				$result = $account_name;
+				break;
+			}
+		}
+
+		return $result;
+	}
+
 	function shortcode_callback( $atts, $content = null, $function_name ) {
 		$module_id                   = $this->shortcode_atts['module_id'];
 		$module_class                = $this->shortcode_atts['module_class'];
@@ -7150,6 +7300,12 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 		switch ( $provider ) {
 			case 'mailchimp' :
 				if ( ! in_array( $mailchimp_list, array( '', 'none' ) ) ) {
+					if ( false !== strpos( $mailchimp_list, '|' ) ) {
+						list( $account_name, $mailchimp_list ) = explode( '|', $mailchimp_list );
+					} else {
+						$account_name = self::get_account_name_for_list_id( 'mailchimp', $mailchimp_list );
+					}
+
 					$form = sprintf( '
 						<div class="et_pb_newsletter_form">
 							<div class="et_pb_newsletter_result"></div>
@@ -7167,12 +7323,13 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 							</p>
 							<p><a class="et_pb_newsletter_button et_pb_button%10$s" href="#"%9$s><span class="et_subscribe_loader"></span><span class="et_pb_newsletter_button_text">%1$s</span></a></p>
 							<input type="hidden" value="%2$s" name="et_pb_signup_list_id" />
+							<input type="hidden" value="%11$s" name="et_pb_signup_account_name" />
 						</div>',
 						esc_html( $button_text ),
 						( ! in_array( $mailchimp_list, array( '', 'none' ) ) ? esc_attr( $mailchimp_list ) : '' ),
 						esc_html( $firstname ),
 						esc_attr( $firstname ),
-						esc_html( $lastname ),
+						esc_html( $lastname ), // #5
 						esc_attr( $lastname ),
 						esc_html( $email_address ),
 						esc_attr( $email_address ),
@@ -7180,7 +7337,8 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 							' data-icon="%1$s"',
 							esc_attr( et_pb_process_font_icon( $custom_icon ) )
 						) : '',
-						'' !== $custom_icon && 'on' === $button_custom ? ' et_pb_custom_button_icon' : ''
+						'' !== $custom_icon && 'on' === $button_custom ? ' et_pb_custom_button_icon' : '', // #10
+						esc_attr( $account_name )
 					);
 				}
 
@@ -7215,6 +7373,12 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 				$firstname = esc_html__( 'Name', 'et_builder' );
 
 				if ( ! in_array( $aweber_list, array( '', 'none' ) ) ) {
+					if ( false !== strpos( $aweber_list, '|' ) ) {
+						list( $account_name, $aweber_list ) = explode( '|', $aweber_list );
+					} else {
+						$account_name = self::get_account_name_for_list_id( 'aweber', $aweber_list );
+					}
+
 					$form = sprintf( '
 						<div class="et_pb_newsletter_form" data-service="aweber">
 							<div class="et_pb_newsletter_result"></div>
@@ -7228,18 +7392,20 @@ class ET_Builder_Module_Signup extends ET_Builder_Module {
 							</p>
 							<p><a class="et_pb_newsletter_button et_pb_button%8$s" href="#"%7$s><span class="et_subscribe_loader"></span><span class="et_pb_newsletter_button_text">%1$s</span></a></p>
 							<input type="hidden" value="%2$s" name="et_pb_signup_list_id" />
+							<input type="hidden" value="%9$s" name="et_pb_signup_account_name" />
 						</div>',
 						esc_html( $button_text ),
 						( ! in_array( $aweber_list, array( '', 'none' ) ) ? esc_attr( $aweber_list ) : '' ),
 						esc_html( $firstname ),
 						esc_attr( $firstname ),
-						esc_html( $email_address ),
+						esc_html( $email_address ), // #5
 						esc_attr( $email_address ),
 						'' !== $custom_icon && 'on' === $button_custom ? sprintf(
 							' data-icon="%1$s"',
 							esc_attr( et_pb_process_font_icon( $custom_icon ) )
 						) : '',
-						'' !== $custom_icon && 'on' === $button_custom ? ' et_pb_custom_button_icon' : ''
+						'' !== $custom_icon && 'on' === $button_custom ? ' et_pb_custom_button_icon' : '',
+						esc_attr( $account_name ) // #9
 					);
 				}
 
@@ -11755,6 +11921,7 @@ class ET_Builder_Module_Blog extends ET_Builder_Module {
 					'label'    => esc_html__( 'Header', 'et_builder' ),
 					'css'      => array(
 						'main' => "{$this->main_css_element} .entry-title",
+						'color' => "{$this->main_css_element} .entry-title a",
 						'plugin_main' => "{$this->main_css_element} .entry-title, {$this->main_css_element} .entry-title a",
 						'important' => 'all',
 					),
